@@ -1,0 +1,312 @@
+"""Remote-Jobs Data API — normalized feed layer.
+
+Stdlib-only. Pulls live remote-job listings from public job-board endpoints
+that require no auth, normalizes them into ONE schema, and exposes them for
+the HTTP API. This is the same feed engine as GigWatch, repackaged as a data
+product.
+
+Public sources (no key, no account):
+  - remotive   https://remotive.com/api/remote-jobs
+  - remoteok   https://remoteok.com/api
+  - jobicy     https://jobicy.com/api/v2/remote-jobs
+  - wwr        https://weworkremotely.com/remote-jobs.rss
+  - hn         HN "Who is Hiring?" (Algolia, monthly megathread)
+"""
+from __future__ import annotations
+
+import hashlib
+import html
+import json
+import re
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from dataclasses import dataclass, asdict, field
+from typing import Any, Dict, List, Optional
+
+UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (compatible; RemoteJobsAPI/1.0)"
+
+SOURCES = ["remotive", "remoteok", "jobicy", "wwr", "hn"]
+
+
+@dataclass
+class Job:
+    id: str
+    title: str
+    company: str = ""
+    url: str = ""
+    location: str = ""
+    salary: str = ""
+    category: str = ""
+    tags: List[str] = field(default_factory=list)
+    published: str = ""
+    source: str = ""
+    description: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        # keep the public schema lean and stable
+        return {
+            "id": d["id"],
+            "title": d["title"],
+            "company": d["company"],
+            "url": d["url"],
+            "location": d["location"],
+            "salary": d["salary"],
+            "category": d["category"],
+            "tags": d["tags"],
+            "published": d["published"],
+            "source": d["source"],
+            "description": d["description"][:500],
+        }
+
+
+def _get(url: str, timeout: int = 20) -> bytes:
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read()
+
+
+def _clean(text: str) -> str:
+    if not text:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _h(s: str) -> str:
+    return hashlib.sha1((s or "").encode("utf-8")).hexdigest()[:16]
+
+
+def fetch_remotive(limit: Optional[int] = None) -> List[Job]:
+    data = json.loads(_get("https://remotive.com/api/remote-jobs").decode("utf-8"))
+    out = []
+    for raw in data.get("jobs", []):
+        out.append(Job(
+            id=str(raw.get("id")),
+            title=_clean(raw.get("title", "")),
+            company=_clean(raw.get("company_name", "")),
+            url=raw.get("url", ""),
+            location=_clean(raw.get("candidate_required_location", "")),
+            salary=_clean(raw.get("salary", "")),
+            category=_clean(raw.get("category", "")),
+            tags=[_clean(t) for t in raw.get("tags", []) if t],
+            published=raw.get("publication_date", ""),
+            source="remotive",
+            description=_clean(raw.get("description", "")),
+        ))
+    return out[:limit] if limit else out
+
+
+def fetch_remoteok(limit: Optional[int] = None) -> List[Job]:
+    data = json.loads(_get("https://remoteok.com/api").decode("utf-8", "replace"))
+    out = []
+    for raw in data:
+        if not isinstance(raw, dict) or not raw.get("position"):
+            continue
+        lo, hi = raw.get("salary_min"), raw.get("salary_max")
+        salary = ""
+        if lo and hi:
+            salary = f"${int(lo):,}-${int(hi):,}"
+        elif lo or hi:
+            salary = f"${int(lo or hi):,}"
+        out.append(Job(
+            id=str(raw.get("id") or _h(raw.get("url", ""))),
+            title=_clean(raw.get("position", "")),
+            company=_clean(raw.get("company", "")),
+            url=raw.get("url", ""),
+            location=_clean(raw.get("location", "")),
+            salary=salary,
+            tags=[_clean(t) for t in raw.get("tags", []) if t],
+            published=raw.get("date", ""),
+            source="remoteok",
+            description=_clean(raw.get("description", "")),
+        ))
+    out = [j for j in out if j.id and j.title]
+    return out[:limit] if limit else out
+
+
+def fetch_jobicy(limit: Optional[int] = None) -> List[Job]:
+    n = limit or 50
+    data = json.loads(_get(f"https://jobicy.com/api/v2/remote-jobs?count={n}").decode("utf-8", "replace"))
+    out = []
+    for raw in data.get("jobs", []):
+        if not isinstance(raw, dict):
+            continue
+        title = _clean(raw.get("jobTitle") or "")
+        if not title:
+            continue
+        tags = []
+        for k in ("jobIndustry", "jobType"):
+            v = raw.get(k) or []
+            if isinstance(v, list):
+                tags.extend(str(t) for t in v)
+        loc = " / ".join(p for p in (raw.get("jobGeo") or "", raw.get("jobLevel") or "") if p)
+        sal = str(raw.get("salary") or "").strip()
+        if sal.upper() in ("N/A", "NA"):
+            sal = ""
+        out.append(Job(
+            id=str(raw.get("id") or _h(raw.get("url", ""))),
+            title=title,
+            company=_clean(raw.get("companyName") or ""),
+            url=raw.get("url", ""),
+            location=loc,
+            salary=sal,
+            tags=tags,
+            published=raw.get("lastUpdate") or "",
+            source="jobicy",
+            description=_clean((raw.get("jobExcerpt") or "")[:300]),
+        ))
+    out = [j for j in out if j.id and j.title]
+    return out[:limit] if limit else out
+
+
+def fetch_wwr(limit: Optional[int] = None) -> List[Job]:
+    root = ET.fromstring(_get("https://weworkremotely.com/remote-jobs.rss").decode("utf-8", "replace"))
+    out = []
+    for it in root.findall(".//item"):
+        title = (it.findtext("title") or "").strip()
+        link = (it.findtext("link") or "").strip()
+        company = ""
+        if ": " in title:
+            company, title = (p.strip() for p in title.split(": ", 1))
+        out.append(Job(
+            id=_h(link or title),
+            title=title,
+            company=company,
+            url=link,
+            category=_clean(it.findtext("category") or ""),
+            location=_clean(it.findtext("region") or ""),
+            published=(it.findtext("pubDate") or "").strip(),
+            source="wwr",
+            description=_clean(it.findtext("description") or ""),
+        ))
+    out = [j for j in out if j.id and j.title]
+    return out[:limit] if limit else out
+
+
+def fetch_hn(limit: Optional[int] = None) -> List[Job]:
+    import time
+    now = int(time.time())
+    window = now - 35 * 86400
+    res = json.loads(_get("https://hn.algolia.com/api/v1/search?%s" % urllib.parse.urlencode({
+        "query": "who is hiring", "tags": "story",
+        "numericFilters": f"created_at_i>={window}", "hitsPerPage": 20,
+    })).decode("utf-8"))
+    stories = []
+    for h in res.get("hits", []):
+        t = (h.get("title") or "").lower()
+        if "who is hiring" not in t or "analysis" in t:
+            continue
+        if "who wants to be hired" in t or "show hn" in t:
+            continue
+        stories.append(h)
+    out = []
+    for story in stories:
+        item = json.loads(_get(f"https://hn.algolia.com/api/v1/items/{story.get('objectID')}").decode("utf-8"))
+        for ch in item.get("children", [])[:100]:
+            cid = ch.get("id")
+            base = f"https://news.ycombinator.com/item?id={cid}"
+            raw = ch.get("text") or ""
+            if not raw:
+                continue
+            # split on the RAW lines first (before any whitespace collapsing),
+            # then clean each line individually.
+            for line in raw.splitlines():
+                s = _clean(line).lstrip("-*• \t").strip()
+                if not s or len(s) > 120:
+                    continue  # multi-sentence blocks are not single-job lines
+                title = company = ""
+                if "|" in s:
+                    parts = [p.strip() for p in s.split("|")]
+                    if len(parts) >= 2:
+                        company, title = parts[0], parts[1]
+                else:
+                    m = re.match(r"^([A-Z][A-Za-z0-9&.'\-]{0,60}?)\s*(?:—|–|:|-)\s+(.{3,120})$", s)
+                    if m:
+                        company, title = m.group(1), m.group(2)
+                if not title or len(title) < 3 or len(title) > 100:
+                    continue
+                if not company or company.lower() in ("http", "https", "i", "we", "a", "the"):
+                    continue
+                if "http" in title.lower():
+                    continue  # title must not be a URL
+                out.append(Job(
+                    id=_h(f"{cid}|{title}"),
+                    title=title, company=company, url=base,
+                    source="hn", description=s[:300],
+                ))
+    out = [j for j in out if j.id and j.title]
+    return out[:limit] if limit else out
+
+
+_FETCHERS = {
+    "remotive": fetch_remotive,
+    "remoteok": fetch_remoteok,
+    "jobicy": fetch_jobicy,
+    "wwr": fetch_wwr,
+    "hn": fetch_hn,
+}
+
+
+def collect(sources: Optional[List[str]] = None, limit: Optional[int] = None,
+            per_source_limit: int = 100) -> List[Job]:
+    """Fetch from the given sources (default: all), dedupe by URL, return flat list."""
+    sources = sources or SOURCES
+    seen: set = set()
+    out: List[Job] = []
+    for src in sources:
+        fn = _FETCHERS.get(src)
+        if not fn:
+            continue
+        try:
+            for j in fn(limit=per_source_limit):
+                key = j.url or j.id
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(j)
+        except Exception:
+            # a flaky source should not break the whole API
+            continue
+    # sort: newest-ish first (published desc, fall back to source order)
+    out.sort(key=lambda j: (j.published or ""), reverse=True)
+    return out[:limit] if limit else out
+
+
+def _match_score(job: Job, skills: List[str]) -> int:
+    """Deterministic 0-100 fit score: title hits weigh more than body hits."""
+    if not skills:
+        return 50
+    title = job.title.lower()
+    hay = job.haystack if hasattr(job, "haystack") else " ".join(
+        [job.title, job.company, job.category, job.location, job.salary,
+         " ".join(job.tags), job.description]).lower()
+    score = 0.0
+    for s in skills:
+        s = s.lower().strip()
+        if not s:
+            continue
+        if s in title:
+            score += 40
+        elif s in hay:
+            score += 15
+    return int(max(0, min(100, score)))
+
+
+def filter_and_rank(jobs: List[Job], skills: Optional[List[str]] = None,
+                    remote_only: bool = False, source: Optional[str] = None,
+                    min_score: Optional[int] = None) -> List[Dict[str, Any]]:
+    out = []
+    for j in jobs:
+        if source and j.source != source:
+            continue
+        d = j.to_dict()
+        d["fit_score"] = _match_score(j, skills or [])
+        if min_score is not None and d["fit_score"] < min_score:
+            continue
+        out.append(d)
+    # best fit first, then newest
+    out.sort(key=lambda d: (d["fit_score"], d["published"]), reverse=True)
+    return out
