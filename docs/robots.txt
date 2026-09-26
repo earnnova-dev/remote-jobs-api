@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://earnnova-dev.github.io/remote-jobs-api/sitemap.xml

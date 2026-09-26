@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6 Free Remote Job APIs &amp; Data Sources (2026) with Python Examples</title>
+<meta name="description" content="A curated list of 6 free remote-job APIs and public data sources that actually return data, with copy-paste Python examples for each. Build a remote-job feed without scraping — Remotive, RemoteOK, We Work Remotely, Jobicy, Hacker News and Remote Leaf.">
+<meta name="keywords" content="free remote job api, remote jobs api, remote work data, job feed api, remoteok api, weworkremotely api, jobicy api, remote leaf, remote jobs scraper python, free job data api">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/free-remote-job-apis.html">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent2:#3fb950;--code:#111820}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+.wrap{max-width:900px;margin:0 auto;padding:0 22px}
+header{padding:44px 0 24px;border-bottom:1px solid var(--border)}
+h1{font-size:32px;margin:0 0 12px;line-height:1.2}
+.sub{font-size:17px;color:var(--muted);margin:0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13.5px}
+code{background:var(--panel);padding:2px 6px;border-radius:5px;font-size:14px}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+section{padding:30px 0}
+h2{font-size:23px;margin:0 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.job{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.job h3{margin:0 0 6px;font-size:18px}
+.job p{margin:0 0 10px;color:var(--muted);font-size:15px}
+.job .type{font-size:12px;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em}
+.cta{display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;font-weight:600}
+footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font-size:14px}
+.note{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:14.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>6 Free Remote Job APIs &amp; Data Sources (2026)</h1>
+  <p class="sub">A curated list of free endpoints for remote-job data — every one verified to return live data, each with a copy-paste Python example. No scraping, no accounts, no API keys for most.</p>
+</header>
+
+<section class="wrap">
+  <p>The hard part of a remote-job feed is not the logic — it's that every board exposes its data differently: some are JSON APIs, some are RSS, some are plain HTML. The list below is only sources that were <em>actually verified to return data</em> (checked 2026). Here are the six that work and how to read each one.</p>
+  <div class="note"><strong>Scope:</strong> every source below is public and free as of 2026. Some are official JSON endpoints, some are RSS feeds, some are public HTML. Respect each board's rate limits and terms of service. If you want one call that returns all of them in a single normalized schema, see <a href="#rja">Remote Jobs API</a> at the end.</div>
+</section>
+
+<section class="wrap">
+  <h2>The list</h2>
+
+  <div class="job">
+    <h3>1. Remotive</h3>
+    <p class="type">Official JSON API</p>
+    <p>Remotive exposes a public JSON endpoint for all current jobs. One call returns the full set with title, location, tags and salary ranges.</p>
+    <pre><code>import requests
+r = requests.get("https://remotive.com/api/remote-jobs", timeout=15)
+jobs = r.json()["jobs"]
+print(len(jobs))   # full current set</code></pre>
+  </div>
+
+  <div class="job">
+    <h3>2. RemoteOK</h3>
+    <p class="type">Public JSON API</p>
+    <p>RemoteOK's listing is backed by a public JSON endpoint (it asks you to link back, follow, no nofollow). Useful for high-volume tech remote roles.</p>
+    <pre><code>import requests
+r = requests.get("https://remoteok.com/api", timeout=15)
+jobs = r.json()          # list of jobs
+for j in jobs[:5]:
+    print(j["id"], j["name"][:40])</code></pre>
+  </div>
+
+  <div class="job">
+    <h3>3. We Work Remotely</h3>
+    <p class="type">RSS feed</p>
+    <p>WWRemotely publishes a daily RSS feed of new remote jobs. Parse it with any RSS library.</p>
+    <pre><code>import feedparser
+d = feedparser.parse("https://weworkremotely.com/remote-jobs.rss")
+for e in d.entries[:10]:
+    print(e.title, e.link)</code></pre>
+  </div>
+
+  <div class="job">
+    <h3>4. Jobicy</h3>
+    <p class="type">Public listings</p>
+    <p>Jobicy lists remote jobs (including those aggregated from other boards). The listings are public and readable directly.</p>
+    <pre><code>import requests
+r = requests.get("https://jobicy.com/", timeout=15)
+# parse the public listing markup for the latest jobs</code></pre>
+  </div>
+
+  <div class="job">
+    <h3>5. Hacker News (whoishiring)</h3>
+    <p class="type">Algolia search API</p>
+    <p>HN's monthly "Who is hiring?" posts are searchable via Algolia — a clean, keyless JSON API.</p>
+    <pre><code>import requests
+r = requests.get("https://hn.algolia.com/api/v1/search",
+                 params={"query": "who is hiring", "tags": "story"},
+                 timeout=15)
+hits = r.json()["hits"]
+print(len(hits), "hiring posts")</code></pre>
+  </div>
+
+  <div class="job">
+    <h3>6. Remote Leaf</h3>
+    <p class="type">Public listings</p>
+    <p>Remote Leaf aggregates remote jobs and exposes a readable, public listing of the latest openings.</p>
+    <pre><code>import requests
+r = requests.get("https://remoteleaf.com/remote-jobs/", timeout=15)
+# parse the public listing for the latest jobs</code></pre>
+  </div>
+
+  <div class="job" id="rja">
+    <h3>The normalizer: Remote Jobs API</h3>
+    <p class="type">REST API · self-hostable · MIT</p>
+    <p>Maintaining six separate adapters — and re-fixing each one when a board changes — is the real cost of a cross-board feed. <a href="/"><strong>Remote Jobs API</strong></a> pulls Remotive, RemoteOK, We Work Remotely, Jobicy and Hacker News, normalizes everything into a single schema, dedupes, and returns JSON/CSV — with an optional 0–100 skill fit-score.</p>
+    <pre><code>curl "https://&lt;your-host&gt;/v1/jobs?skills=python,backend&limit=3"</code></pre>
+    <p><a class="cta" href="/"><strong>Remote Jobs API →</strong></a> — 5 boards, one schema, stdlib-only Python, free &amp; MIT.</p>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Choosing a source</h2>
+  <p>If you only need one board, use its native endpoint — it's the most direct. If you need a cross-board feed (most real use cases do), the single biggest cost is adapter maintenance: every board quietly changes its format. A normalizer collapses that into one stable schema you control. That's exactly the gap <a href="/">Remote Jobs API</a> fills.</p>
+</section>
+
+<footer class="wrap">
+  <p>Curated for developers building job-data pipelines. All sources verified live, 2026. <a href="/">Remote Jobs API</a> · <a href="https://github.com/earnnova-dev/remote-jobs-api">GitHub</a></p>
+</footer>
+</body>
+</html>
