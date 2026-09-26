@@ -46,6 +46,7 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
   <span class="badge">JSON + CSV</span>
   <span class="badge">0-100 fit score</span>
   <span class="badge">Stdlib-only Python</span>
+  <span class="badge">📦 pip installable</span>
   <span class="badge">MIT</span>
 </header>
 
@@ -111,8 +112,15 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
 </section>
 
 <section class="wrap">
-  <h2>Run it yourself</h2>
-  <p>Zero dependencies — pure Python stdlib.</p>
+  <h2>Install</h2>
+  <p>One command — pure Python stdlib, zero dependencies.</p>
+  <pre><code>pip install remote-jobs-api</code></pre>
+  <p>Query the feed directly (JSON or CSV, with an optional 0–100 skill fit-score):</p>
+  <pre><code>remote-jobs-api --skills python,api --limit 5
+remote-jobs-api --source wwr --format csv</code></pre>
+  <p>Or run the HTTP API server on your own host:</p>
+  <pre><code>remote-jobs-api --serve --port 8321</code></pre>
+  <p><strong>Or run from source:</strong></p>
   <pre><code>git clone https://github.com/earnnova-dev/remote-jobs-api
 cd remote-jobs-api
 python3 -m remote_jobs_api.server          # listens on :8321</code></pre>
