@@ -22,6 +22,8 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, asdict, field
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (compatible; RemoteJobsAPI/1.0)"
@@ -75,6 +77,20 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _repair_mojibake(text: str) -> str:
+    """Repair common UTF-8-as-Latin-1 text returned by legacy feeds."""
+    if not text:
+        return ""
+    try:
+        repaired = text.encode("latin-1").decode("utf-8")
+        # Only accept the repair when it removes mojibake markers.
+        if repaired != text and sum(text.count(c) for c in "ÃÂ�") > 0:
+            return repaired
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    return text
+
+
 def _h(s: str) -> str:
     return hashlib.sha1((s or "").encode("utf-8")).hexdigest()[:16]
 
@@ -113,10 +129,10 @@ def fetch_remoteok(limit: Optional[int] = None) -> List[Job]:
             salary = f"${int(lo or hi):,}"
         out.append(Job(
             id=str(raw.get("id") or _h(raw.get("url", ""))),
-            title=_clean(raw.get("position", "")),
-            company=_clean(raw.get("company", "")),
+            title=_repair_mojibake(_clean(raw.get("position", ""))),
+            company=_repair_mojibake(_clean(raw.get("company", ""))),
             url=raw.get("url", ""),
-            location=_clean(raw.get("location", "")),
+            location=_repair_mojibake(_clean(raw.get("location", ""))),
             salary=salary,
             tags=[_clean(t) for t in raw.get("tags", []) if t],
             published=raw.get("date", ""),
@@ -143,9 +159,20 @@ def fetch_jobicy(limit: Optional[int] = None) -> List[Job]:
             if isinstance(v, list):
                 tags.extend(str(t) for t in v)
         loc = " / ".join(p for p in (raw.get("jobGeo") or "", raw.get("jobLevel") or "") if p)
-        sal = str(raw.get("salary") or "").strip()
-        if sal.upper() in ("N/A", "NA"):
-            sal = ""
+        sal = ""
+        sal_min = raw.get("salaryMin")
+        sal_max = raw.get("salaryMax")
+        currency = str(raw.get("salaryCurrency") or "").strip()
+        period = str(raw.get("salaryPeriod") or "").strip().strip("/").strip()
+        try:
+            if sal_min is not None and sal_max is not None:
+                sal = f"{currency} {int(float(sal_min)):,}-{int(float(sal_max)):,}".strip()
+            elif sal_min is not None or sal_max is not None:
+                sal = f"{currency} {int(float(sal_min if sal_min is not None else sal_max)):,}".strip()
+        except (TypeError, ValueError):
+            sal = _clean(str(raw.get("salary") or ""))
+        if period:
+            sal = f"{sal} / {period}" if sal else period
         out.append(Job(
             id=str(raw.get("id") or _h(raw.get("url", ""))),
             title=title,
@@ -154,7 +181,7 @@ def fetch_jobicy(limit: Optional[int] = None) -> List[Job]:
             location=loc,
             salary=sal,
             tags=tags,
-            published=raw.get("lastUpdate") or "",
+            published=raw.get("pubDate") or "",
             source="jobicy",
             description=_clean((raw.get("jobExcerpt") or "")[:300]),
         ))
@@ -250,6 +277,22 @@ _FETCHERS = {
 }
 
 
+def _published_key(value: str) -> float:
+    """Parse ISO-8601 and RFC-2822 feed dates into one sortable timestamp."""
+    if not value:
+        return 0.0
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        try:
+            dt = parsedate_to_datetime(value)
+        except (TypeError, ValueError, OverflowError):
+            return 0.0
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
+
+
 def collect(sources: Optional[List[str]] = None, limit: Optional[int] = None,
             per_source_limit: int = 100) -> List[Job]:
     """Fetch from the given sources (default: all), dedupe by URL, return flat list."""
@@ -270,8 +313,8 @@ def collect(sources: Optional[List[str]] = None, limit: Optional[int] = None,
         except Exception:
             # a flaky source should not break the whole API
             continue
-    # sort: newest-ish first (published desc, fall back to source order)
-    out.sort(key=lambda j: (j.published or ""), reverse=True)
+    # sort by actual timestamp, because sources use ISO-8601, RFC-2822, or blank dates
+    out.sort(key=lambda j: _published_key(j.published), reverse=True)
     return out[:limit] if limit else out
 
 

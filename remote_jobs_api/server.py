@@ -84,16 +84,24 @@ class Handler(BaseHTTPRequestHandler):
             if source and source not in SOURCES:
                 return self._json(400, {"error": f"unknown source {source!r}; choose from {SOURCES}"})
             try:
-                limit = max(1, min(500, int(q.get("limit", ["50"])[0])))
-            except ValueError:
-                limit = 50
+                limit = int(q.get("limit", ["50"])[0])
+            except (ValueError, TypeError):
+                return self._json(400, {"error": "limit must be an int"})
+            if not 1 <= limit <= 500:
+                return self._json(400, {"error": "limit must be between 1 and 500"})
             min_score = None
             if q.get("min_score", [""])[0].strip():
                 try:
                     min_score = int(q["min_score"][0])
-                except ValueError:
+                except (ValueError, TypeError):
                     return self._json(400, {"error": "min_score must be an int"})
+                if not 0 <= min_score <= 100:
+                    return self._json(400, {"error": "min_score must be between 0 and 100"})
+                if not skills:
+                    return self._json(400, {"error": "min_score requires skills"})
             fmt = (q.get("format", ["json"])[0] or "json").lower()
+            if fmt not in ("json", "csv"):
+                return self._json(400, {"error": "format must be json or csv"})
 
             jobs = feed.filter_and_rank(
                 _cached_all(), skills=skills, source=source, min_score=min_score
