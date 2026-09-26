@@ -120,6 +120,15 @@ Offline unit tests (no network): `python -m pytest`.
 > Self-hosted = free, MIT. The paid tier is the hosted, always-on,
 > high-rate-limit version — the same engine, managed for you.
 
+## Related product
+
+Want alerts instead of a data endpoint? **GigWatch** is a self-hosted gig watcher
+that monitors the same live feeds, filters by your skills, and pings you
+(console, email, or Slack) only when a new matching gig appears.
+
+- Repo: https://github.com/earnnova-dev/gigwatch
+- Install: `pip install gigwatch-nova`
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
