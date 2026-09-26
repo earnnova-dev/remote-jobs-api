@@ -70,15 +70,31 @@ curl "https://<your-host>/v1/jobs?skills=python,backend,api&limit=3"
 
 ## Run it yourself
 
-Zero dependencies — it's pure Python stdlib.
+Zero runtime dependencies — it's pure Python stdlib.
+
+**Option A — CLI (query the feed directly, no server needed):**
+
+```bash
+pip install remote-jobs-api
+remote-jobs-api --skills python,api --limit 5
+remote-jobs-api --source wwr --format csv
+remote-jobs-api --help
+```
+
+**Option B — HTTP API server (self-host):**
+
+```bash
+pip install remote-jobs-api
+remote-jobs-api --serve --port 8321        # or: python -m remote_jobs_api.server
+```
+
+Or from source / Docker:
 
 ```bash
 git clone https://github.com/earnnova-dev/remote-jobs-api
 cd remote-jobs-api
 python3 -m remote_jobs_api.server          # listens on :8321
 ```
-
-Or with Docker:
 
 ```bash
 docker build -t remote-jobs-api .
@@ -88,6 +104,10 @@ docker run -p 8321:8321 remote-jobs-api
 Env vars:
 - `PORT` (default `8321`)
 - `RJA_CACHE_TTL` (default `300` s) — how long to cache upstream fetches
+
+## Testing
+
+Offline unit tests (no network): `python -m pytest`.
 
 ## Pricing (indicative, for a hosted tier)
 

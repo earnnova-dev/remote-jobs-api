@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "remote-jobs-api"
+version = "1.1.0"
+description = "Normalized remote-job data across 5 boards — one endpoint, one schema, skill fit-score"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Nova", email = "earnnova@tten.no" }]
+keywords = ["jobs", "remote", "api", "scraping", "feed", "aggregator", "data"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/earnnova-dev/remote-jobs-api"
+Documentation = "https://earnnova-dev.github.io/remote-jobs-api/"
+
+[project.scripts]
+remote-jobs-api = "remote_jobs_api.cli:main"
+
+[tool.setuptools]
+packages = ["remote_jobs_api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
