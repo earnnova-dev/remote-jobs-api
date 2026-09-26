@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Get Remote Job Data: Build a Job Board Scraper or Use a Data API (2026)</title>
+<meta name="description" content="Want structured remote-job data without maintaining five fragile scrapers? Compare building your own remote job board scraper against calling a normalized data API, with real Python examples for Remotive, RemoteOK, We Work Remotely, Jobicy and Hacker News.">
+<meta name="keywords" content="remote job scraper, job board scraper, scrape remote jobs, remote jobs api, job data api, remotive api, remoteok api, we work remotely api, job feed, parse job listings, python job scraper">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-scraper.html">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent2:#3fb950;--code:#111820}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px}
+header{padding:46px 0 26px;border-bottom:1px solid var(--border)}
+h1{font-size:32px;margin:0 0 14px;line-height:1.25}
+.sub{font-size:18px;color:var(--muted);margin:0 0 18px}
+.badge{display:inline-block;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--text);margin:0 6px 8px 0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13.5px;line-height:1.5}
+pre code{background:none;padding:0}
+code{background:var(--panel);padding:2px 6px;border-radius:5px;font-size:14px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+section{padding:32px 0}
+h2{font-size:23px;margin:0 0 16px;border-bottom:1px solid var(--border);padding-bottom:8px}
+h3{font-size:18px;margin:22px 0 8px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border:1px solid var(--border);vertical-align:top}
+th{background:var(--panel)}
+.cta{display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;font-weight:600}
+.pill{color:var(--accent2);font-weight:600}
+footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>Remote job data: build a scraper, or call an API?</h1>
+  <p class="sub">You need structured remote-job listings from several boards. The honest trade-off is between maintaining your own per-board scrapers and consuming one normalized data endpoint. Here's what each actually costs you, with runnable Python.</p>
+  <span class="badge">🟢 live today</span>
+  <span class="badge">5 boards</span>
+  <span class="badge">JSON + CSV</span>
+  <span class="badge">0-100 fit score</span>
+</header>
+
+<section class="wrap">
+  <h2>The problem with scraping remote job boards</h2>
+  <p>Every board does it differently. Remotive is JSON but paginates in a particular way; RemoteOK and We Work Remotely are HTML you have to parse; Jobicy and Hacker News (Who Is Hiring) have their own shapes. If you build the scraper yourself you own all of it:</p>
+  <ul>
+    <li><strong>Per-board format drift.</strong> Boards change class names and response fields with no notice. One bad deploy upstream and your pipeline silently returns garbage or an empty list.</li>
+    <li><strong>Duplicate listings.</strong> The same role appears on multiple boards. Without dedup you double-count every "opportunity" you report.</li>
+    <li><strong>Rate limits and breakage.</strong> Each endpoint has its own tolerance. Scraping five boards concurrently means five ways to get blocked or throttled.</li>
+  </ul>
+  <p>None of that is interesting business logic. It's maintenance you're paying for on a recurring basis.</p>
+</section>
+
+<section class="wrap">
+  <h2>Option A — build your own scraper</h2>
+  <p>Start with a per-board fetch and parse. For a JSON board it looks roughly like this:</p>
+<pre><code>import requests, json
+
+def remotive(limit=20):
+    r = requests.get("https://remotive.com/api/remote-jobs",
+                     params={"limit": limit}, timeout=20)
+    r.raise_for_status()
+    return r.json()["jobs"]
+
+jobs = remotive()
+print(len(jobs), "jobs")
+print(jobs[0]["title"], "|", jobs[0]["company_name"])</code></pre>
+  <p>That works — <em>until</em> the response changes. Then you repeat the whole exercise for RemoteOK (HTML → you need a parser), We Work Remotely (HTML, category-scoped), Jobicy, and the Hacker News "Who Is Hiring" thread (an Algolia search on a monthly post). Five adapters, five maintenance loops, five different ways to break. And every downstream consumer has to re-normalize each board's fields by hand.</p>
+  <p><strong>Cost:</strong> high upfront, and a permanent recurring tax the moment you add boards or a board changes.</p>
+</section>
+
+<section class="wrap">
+  <h2>Option B — call a normalized data API</h2>
+  <p>Push the scraping and normalization to one place and consume the result. <a href="https://earnnova-dev.github.io/remote-jobs-api/">Remote Jobs API</a> pulls the five boards (Remotive, RemoteOK, Jobicy, We Work Remotely, Hacker News), normalizes each listing into a single schema, dedupes, and returns <code>JSON</code> or <code>CSV</code> — plus an optional deterministic <span class="pill">0–100 skill fit-score</span> for ranking. You get one call:</p>
+<pre><code>pip install remote-jobs-api
+
+# query the feed directly, rank by skill, cap the list
+remote-jobs-api --skills python,api --limit 3
+
+# or run it as a REST server
+remote-jobs-api --serve --port 8000</code></pre>
+  <p>From Python it's the same endpoint shape:</p>
+<pre><code>import json, subprocess
+
+out = subprocess.check_output(
+    ["remote-jobs-api", "--skills", "python,api",
+     "--limit", "50", "--format", "json"])
+data = json.loads(out)          # {"count": N, "query": {...}, "jobs": [...]}
+for j in data["jobs"][:5]:
+    print(j["title"], "|", j["source"], "| fit", j["fit_score"])</code></pre>
+  <p>Each job is already normalized — <code>title</code>, <code>company</code>, <code>location</code>, <code>salary</code>, <code>tags</code>, <code>source</code>, <code>fit_score</code> — so a <code>remotive</code> row and a <code>wwr</code> row are interchangeable. No per-board adapters on your side, no session scraping, no browser. It's pure Python stdlib, so it runs on a laptop, a $5 VPS, or the included Dockerfile.</p>
+  <p><strong>Cost:</strong> low. You trade "own every board's internals" for "consume one schema" — and you stop re-parsing when a board changes.</p>
+</section>
+
+<section class="wrap">
+  <h2>Which one to pick</h2>
+  <table>
+    <tr><th>Concern</th><th>Roll your own scraper</th><th>Call a data API</th></tr>
+    <tr><td>Time to first data</td><td>Hours per board</td><td>One <code>pip install</code></td></tr>
+    <tr><td>Boards supported</td><td>One at a time, each hand-parsed</td><td>5 boards, one schema</td></tr>
+    <tr><td>Duplicate handling</td><td>You build it</td><td>Pre-deduped</td></tr>
+    <tr><td>Maintenance when boards change</td><td>Ours, forever</td><td>Pushed to the provider</td></tr>
+    <tr><td>Rate limits / blocking</td><td>You manage 5</td><td>One endpoint</td></tr>
+    <tr><td>Custom boards</td><td>Full control</td><td>Not in the default set</td></tr>
+    <tr><td>Best fit</td><td>You need a <em>specific</em> board not covered, or full control over parsing</td><td>You want multi-board structured data with minimal maintenance</td></tr>
+  </table>
+  <p>Rule of thumb: if you need <strong>one</strong> board you deeply control, scrape it. If you need <strong>several</strong> boards as one clean dataset and don't want to own the breakage, use the API.</p>
+</section>
+
+<section class="wrap">
+  <h2>Bottom line</h2>
+  <p>Scraping is a means to an end you rarely actually want — you want the <em>data</em>. If the end is "structured remote jobs from multiple boards," the cheapest durable path is to consume a normalized feed rather than maintain five fragile scrapers. <a href="https://earnnova-dev.github.io/remote-jobs-api/">Remote Jobs API</a> is self-hostable and stdlib-only, so there's no lock-in: point it at your stack, or read the source and fork it.</p>
+  <p>
+    <a class="cta" href="https://earnnova-dev.github.io/remote-jobs-api/">Try the API</a>
+    <a class="cta" href="https://earnnova-dev.github.io/remote-jobs-api/free-remote-job-apis.html">6 free remote-job data sources</a>
+  </p>
+</section>
+
+<footer class="wrap">
+  <p>Remote Jobs API — normalized remote-job data from Remotive, RemoteOK, Jobicy, We Work Remotely and Hacker News. Self-hostable, stdlib-only Python, MIT. <a href="https://earnnova-dev.github.io/remote-jobs-api/">Docs &amp; product</a> · <a href="https://earnnova-dev.github.io/remote-jobs-api/free-remote-job-apis.html">Free data sources</a> · <a href="https://github.com/earnnova-dev/remote-jobs-api">Source</a></p>
+</footer>
+</body>
+</html>
