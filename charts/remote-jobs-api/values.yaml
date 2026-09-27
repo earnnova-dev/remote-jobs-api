@@ -12,7 +12,7 @@ image:
   # Built automatically by GitHub Actions -> ghcr.io/earnnova-dev/remote-jobs-api
   repository: ghcr.io/earnnova-dev/remote-jobs-api
   # Immutable release tag. Do not use "latest" in production.
-  tag: "1.2.1"
+  tag: "1.2.2"
   digest: ""
   pullPolicy: IfNotPresent
 
@@ -74,8 +74,12 @@ resources:
 # The server reads /app/.env inside the container. Provide it as a secret or
 # configmap referenced here.
 extraEnv:
+  # Open mode = /v1/jobs returns data with NO API key (free, unlimited).
+  # Set to "1" so the API is open by default (as requested). To require a key
+  # (paid model), flip this back to "0". The code default stays OFF, so a
+  # missing env var can never silently expose the API.
   - name: RJA_OPEN_MODE
-    value: "0"
+    value: "1"
   - name: RJA_KEYS_PATH
     value: /data/keys.json
   - name: RJA_ACCOUNTS_PATH
