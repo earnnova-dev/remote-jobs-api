@@ -41,7 +41,7 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
 <header class="wrap">
   <h1>Remote Jobs API</h1>
   <p class="sub">Live, normalized remote-job data from 5 boards — one clean endpoint, one schema, no scraping on your side.</p>
-  <span class="badge" id="livecount">🟢 303 live jobs right now</span>
+  <span class="badge" id="livecount">🟢 loading live job count…</span>
   <span class="badge">5 boards</span>
   <span class="badge">JSON + CSV</span>
   <span class="badge">0-100 fit score</span>
@@ -105,21 +105,39 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
 (function(){
   var base=""+document.currentScript.src;
   fetch("sample.json").then(function(r){return r.json()}).then(function(d){
+    liveSnapshotTotal=d.total_live;
     var tb=document.querySelector("#rtable tbody");
     var rows=d.jobs.slice(0,20).map(function(j){
       var t=(j.title||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
       var c=(j.company||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
       var a="";
-      if(j.url){var u=String(j.url).replace(/&/g,"&amp;");a=" <a href=""+u+"" rel="noopener" target="_blank" title="open listing">↗</a>";}
-      return "<tr><td class='pill'>"+(j.fit_score!=null?j.fit_score:"—")+"</td><td>"+j.source+"</td><td><a href=""+(j.url?String(j.url).replace(/&/g,'&amp;'):"#")+"" rel="noopener" target="_blank">"+t+a+"</a></td><td>"+c+" — "+(j.location||"")+"</td><td>"+(j.published||"—")+"</td></tr>";
+      if(j.url){var u=String(j.url).replace(/&/g,"&amp;");a=' <a href="'+u+'" rel="noopener" target="_blank" title="open listing">↗</a>';}
+      return '<tr><td class="pill">' + (j.fit_score!=null?j.fit_score:'—') + '</td><td>' + j.source + '</td><td><a href="' + (j.url?String(j.url).replace(/&/g,'&amp;'):'#') + '" rel="noopener" target="_blank">' + t + a + '</a></td><td>' + c + ' — ' + (j.location||'') + '</td><td>' + (j.published||'—') + '</td></tr>';
     }).join("");
     tb.innerHTML=rows;
     document.getElementById("rmeta").textContent=d.count+" listings across "+d.boards.length+" boards · captured "+new Date(d.generated_at*1000).toUTCString()+" · fit-score for skills="+d.skills_example.join(",");
-    if(d.total_live!=null){var lc=document.getElementById("livecount");if(lc){lc.textContent="🟢 "+d.total_live+" live jobs right now";}}
+    if(d.total_live!=null){setBadge(d.total_live, false);}
   }).catch(function(){
     document.querySelector("#realdata").innerHTML="<p class='tag'>Snapshot unavailable in this view — see <a href='sample.json'>sample.json</a> for the raw JSON.</p>";
   });
+
+  // Live count: fetch the real number from the API at runtime (CORS *).
+  // Falls back to the release snapshot with honest wording if unreachable.
+  fetch("https://remote-jobs-api.tten.no/health").then(function(r){return r.json();}).then(function(h){
+    if(h && h.count_live!=null){setBadge(h.count_live, true);}
+  }).catch(function(){
+    // Unreachable (self-hosted behind a proxy, or hosted endpoint down):
+    // use the snapshot value only if we already have it, else label honestly.
+    setBadge(liveSnapshotTotal, false, true);
+  });
 })();
+function setBadge(n, isLive, noData){
+  var el=document.getElementById("livecount");
+  if(!el) return;
+  if(n==null){el.textContent="🟡 live job count unavailable";return;}
+  el.textContent=isLive ? ("🟢 "+n+" live jobs right now") : ("🟡 "+n+" jobs in latest snapshot");
+}
+var liveSnapshotTotal=null;
 </script>
 
 <section class="wrap">
