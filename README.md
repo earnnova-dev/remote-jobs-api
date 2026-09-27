@@ -101,6 +101,29 @@ docker build -t remote-jobs-api .
 docker run -p 8321:8321 remote-jobs-api
 ```
 
+**Option C — Kubernetes (Helm chart, self-host):**
+
+A production-ready chart ships in the repo (`charts/remote-jobs-api/`) and is
+published as a static Helm repository on GitHub Pages. It provisions the API
+server, a persistent key store (PVC), and an optional ingress, PDB and
+NetworkPolicy.
+
+```bash
+helm repo add earnnova https://earnnova-dev.github.io/remote-jobs-api/
+helm repo update
+helm install rja earnnova/remote-jobs-api --namespace rja --create-namespace --set image.repository=ghcr.io/earnnova-dev/remote-jobs-api --set image.tag=1.1.0
+```
+
+The chart generates an admin token on install; retrieve it:
+
+```bash
+kubectl -n rja get secret rja-rja -o jsonpath='{.data.token}' | base64 -d
+```
+
+See `charts/remote-jobs-api/README.md` for the full values reference
+(ingress, TLS, persistence, NetworkPolicy egress allowlist, resources).
+
+
 Env vars:
 - `PORT` (default `8321`)
 - `RJA_CACHE_TTL` (default `300` s) — how long to cache upstream fetches
