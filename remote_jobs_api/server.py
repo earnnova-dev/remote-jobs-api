@@ -77,8 +77,12 @@ _load_dotenv(".env")
 
 # --- configuration -------------------------------------------------------
 _CACHE_TTL = int(os.environ.get("RJA_CACHE_TTL", "300"))
-_KEYS_PATH = os.environ.get("RJA_KEYS_PATH", os.path.join(_here, "..", "keys.json"))
-_ACCOUNTS_PATH = os.environ.get("RJA_ACCOUNTS_PATH", os.path.join(_here, "..", "accounts.json"))
+# Default state paths live in /tmp (always writable) so register/login never
+# crash on a read-only filesystem if the env vars are unset. In production the
+# Helm chart points these at the /data PVC (RJA_KEYS_PATH / RJA_ACCOUNTS_PATH)
+# so state survives pod restarts.
+_KEYS_PATH = os.environ.get("RJA_KEYS_PATH", "/tmp/rja_keys.json")
+_ACCOUNTS_PATH = os.environ.get("RJA_ACCOUNTS_PATH", "/tmp/rja_accounts.json")
 _ADMIN_TOKEN = os.environ.get("RJA_ADMIN_TOKEN", "")
 _OPEN_MODE = os.environ.get("RJA_OPEN_MODE", "0") == "1"
 _BASE_URL = os.environ.get("RJA_BASE_URL", "https://remote-jobs-api.tten.no").rstrip("/")
