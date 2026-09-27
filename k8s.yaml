@@ -1,0 +1,132 @@
+# Remote Jobs API — Kubernetes deployment
+#
+# Before applying:
+#   1. Create the admin token secret:
+#        kubectl create secret generic rja-admin \
+#          --from-literal=token="<pick-a-long-random-string>"
+#   2. Adjust image tag below (or build locally + push to your registry)
+#   3. kubectl apply -f k8s.yaml
+#
+# After applying:
+#   kubectl port-forward svc/remote-jobs-api 8321:8321
+#   TOKEN=*** rja-admin-token>
+#   # create a customer key:
+#   curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+#        -H 'Content-Type: application/json' \
+#        -d '{"plan":"pro","label":"acme"}' \
+#        http://localhost:8321/admin/keys
+#   # use it:
+#   curl -s -H "Authorization: Bearer <customer-key>" \
+#        "http://localhost:8321/v1/jobs?skills=python,backend&limit=5"
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: remote-jobs-api
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rja-keys
+  namespace: remote-jobs-api
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: remote-jobs-api
+  namespace: remote-jobs-api
+spec:
+  replicas: 1   # keep at 1 until we move the key store to an external DB
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: remote-jobs-api
+  template:
+    metadata:
+      labels:
+        app: remote-jobs-api
+    spec:
+      containers:
+        - name: api
+          image: remote-jobs-api:latest   # build: docker build -t remote-jobs-api:latest .
+          ports:
+            - containerPort: 8321
+              name: http
+          env:
+            - name: PORT
+              value: "8321"
+            - name: RJA_CACHE_TTL
+              value: "300"
+            - name: RJA_KEYS_PATH
+              value: "/data/keys.json"
+            - name: RJA_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: rja-admin
+                  key: token
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: keys
+              mountPath: /data
+      volumes:
+        - name: keys
+          persistentVolumeClaim:
+            claimName: rja-keys
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: remote-jobs-api
+  namespace: remote-jobs-api
+spec:
+  selector:
+    app: remote-jobs-api
+  ports:
+    - port: 8321
+      targetPort: http
+      protocol: TCP
+---
+# Optional: Ingress. Un-comment and set host to your domain.
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: remote-jobs-api
+#   namespace: remote-jobs-api
+#   annotations:
+#     nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+# spec:
+#   rules:
+#     - host: jobs-api.example.com
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: remote-jobs-api
+#                 port:
+#                   number: 8321
