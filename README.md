@@ -61,7 +61,7 @@ curl "https://<your-host>/v1/jobs?skills=python,backend,api&limit=3"
       "location": "Anywhere in the World",
       "category": "Back-End Programming",
       "source": "wwr",
-      "published": "Tue, 15 Sep 2026 09:01:36 +0000",
+      "published": "2026-09-15T09:01:36+00:00",
       "fit_score": 80
     }
   ]

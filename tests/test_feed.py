@@ -13,7 +13,7 @@ from contextlib import redirect_stdout
 import pytest
 
 from remote_jobs_api import feed
-from remote_jobs_api.feed import Job, _clean, _h, _match_score, filter_and_rank, SOURCES
+from remote_jobs_api.feed import Job, _clean, _h, _match_score, filter_and_rank, SOURCES, _canonical_published
 
 
 # --- helpers -------------------------------------------------------------
@@ -114,6 +114,36 @@ def test_rank_best_fit_first():
 
 def test_sources_known():
     assert set(SOURCES) == {"remotive", "remoteok", "jobicy", "wwr", "hn"}
+
+
+# --- _canonical_published (schema consistency) ----------------------------
+
+def test_canonical_published_iso_passthrough():
+    # ISO-8601 (remotive/remoteok) -> canonical ISO-8601 UTC
+    assert _canonical_published("2026-09-15T09:01:36Z") == "2026-09-15T09:01:36+00:00"
+
+def test_canonical_published_rfc2822_normalized():
+    # RFC-2822 (We Work Remotely) -> same canonical shape as ISO
+    out = _canonical_published("Tue, 15 Sep 2026 09:01:36 +0000")
+    assert out == "2026-09-15T09:01:36+00:00"
+
+def test_canonical_published_nonutc_converted():
+    # a non-UTC offset is normalized to UTC
+    out = _canonical_published("2026-09-15T11:31:36+02:00")
+    assert out == "2026-09-15T09:31:36+00:00"
+
+def test_canonical_published_blank_and_garbage():
+    assert _canonical_published("") == ""
+    assert _canonical_published(None) == ""
+    assert _canonical_published("not a date") == ""
+
+def test_to_dict_published_is_single_format():
+    # the public schema must expose ONE date format regardless of source
+    d_iso = _job(published="2026-09-15T09:01:36Z").to_dict()
+    d_rfc = _job(published="Tue, 15 Sep 2026 09:01:36 +0000").to_dict()
+    d_blank = _job(published="").to_dict()
+    assert d_iso["published"] == d_rfc["published"] == "2026-09-15T09:01:36+00:00"
+    assert d_blank["published"] == ""
 
 
 # --- CLI -----------------------------------------------------------------

@@ -149,7 +149,7 @@ paths:
                     salary: ""
                     category: Back-End Programming
                     tags: []
-                    published: "Tue, 15 Sep 2026 09:01:36 +0000"
+                    published: "2026-09-15T09:01:36+00:00"
                     source: wwr
                     description: "Headquarters: Sweden ... Senior Python Developer ... Django ... PostgreSQL ..."
                     fit_score: 40
@@ -191,7 +191,7 @@ components:
             type: string
         published:
           type: string
-          description: Publication timestamp in the source's native format, when available.
+          description: Publication timestamp normalized to a single canonical ISO-8601 UTC string (YYYY-MM-DDTHH:MM:SS+00:00); empty when the source provides none.
         source:
           type: string
           enum: [remotive, remoteok, jobicy, wwr, hn]

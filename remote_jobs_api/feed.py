@@ -57,7 +57,7 @@ class Job:
             "salary": d["salary"],
             "category": d["category"],
             "tags": d["tags"],
-            "published": d["published"],
+            "published": _canonical_published(d["published"]),
             "source": d["source"],
             "description": d["description"][:500],
         }
@@ -291,6 +291,31 @@ def _published_key(value: str) -> float:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.timestamp()
+
+
+def _canonical_published(value: str) -> str:
+    """Normalize a source's native date string into ONE canonical ISO-8601 UTC form.
+
+    Boards return three different date formats (ISO-8601 from remotive/remoteok,
+    RFC-2822 from We Work Remotely, blank from HN). The product contract is a
+    single clean schema, so the public ``published`` field is normalized to
+    ``YYYY-MM-DDTHH:MM:SS+00:00`` (UTC) when the timestamp can be parsed, and an
+    empty string when the source provides none (or an unparseable one).
+    """
+    if not value or not value.strip():
+        return ""
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        try:
+            dt = parsedate_to_datetime(value)
+        except (TypeError, ValueError, OverflowError):
+            return ""
+    if dt is None:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat()
 
 
 def collect(sources: Optional[List[str]] = None, limit: Optional[int] = None,
