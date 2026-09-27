@@ -41,7 +41,7 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
 <header class="wrap">
   <h1>Remote Jobs API</h1>
   <p class="sub">Live, normalized remote-job data from 5 boards — one clean endpoint, one schema, no scraping on your side.</p>
-  <span class="badge">🟢 324+ live jobs right now</span>
+  <span class="badge" id="livecount">🟢 303 live jobs right now</span>
   <span class="badge">5 boards</span>
   <span class="badge">JSON + CSV</span>
   <span class="badge">0-100 fit score</span>
@@ -115,6 +115,7 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
     }).join("");
     tb.innerHTML=rows;
     document.getElementById("rmeta").textContent=d.count+" listings across "+d.boards.length+" boards · captured "+new Date(d.generated_at*1000).toUTCString()+" · fit-score for skills="+d.skills_example.join(",");
+    if(d.total_live!=null){var lc=document.getElementById("livecount");if(lc){lc.textContent="🟢 "+d.total_live+" live jobs right now";}}
   }).catch(function(){
     document.querySelector("#realdata").innerHTML="<p class='tag'>Snapshot unavailable in this view — see <a href='sample.json'>sample.json</a> for the raw JSON.</p>";
   });
