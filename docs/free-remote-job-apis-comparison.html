@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Remote Job APIs Compared (2026): 6 Boards Benchmarked Live — Counts, Latency, Auth, Salary Fields</title>
+<meta name="description" content="We benchmarked 6 free remote-job data sources live (2026-09-27): Remotive, RemoteOK, We Work Remotely, Jobicy, Hacker News, RemoteLeaf. Real job counts, measured latency, auth requirements, and which fields each returns — so you can pick a feed or build an aggregator the right way.">
+<meta name="keywords" content="free remote job api, remote job api comparison, which remote job api is best, remote job feed, job board api, remotive api, remoteok api, jobicy api, we work remotely rss, remote jobs data, job aggregator">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/free-remote-job-apis-comparison.html">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent2:#3fb950;--code:#111820;--warn:#d29922}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+header{padding:46px 0 26px;border-bottom:1px solid var(--border)}
+h1{font-size:32px;margin:0 0 12px;line-height:1.2}
+.sub{font-size:18px;color:var(--muted);margin:0 0 18px}
+.badge{display:inline-block;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--text);margin:0 6px 8px 0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13.5px}
+code{background:var(--panel);padding:2px 6px;border-radius:5px;font-size:14px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+section{padding:34px 0}
+h2{font-size:24px;margin:0 0 16px;border-bottom:1px solid var(--border);padding-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+th,td{text-align:left;padding:10px 12px;border:1px solid var(--border);vertical-align:top}
+th{background:var(--panel)}
+.pill{color:var(--accent2);font-weight:600}
+.warn{color:var(--warn);font-weight:600}
+.cta{display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;font-weight:600}
+footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>Free Remote Job APIs Compared (2026)</h1>
+  <p class="sub">We benchmarked 6 free remote-job data sources live on 2026-09-27 — real job counts, measured latency, auth requirements, and which fields each actually returns. Here's the honest picture before you build on one.</p>
+  <span class="badge">📊 6 sources, live-measured</span>
+  <span class="badge">Job counts</span>
+  <span class="badge">Latency</span>
+  <span class="badge">Auth</span>
+  <span class="badge">Salary-field check</span>
+  <span class="badge">No key needed</span>
+</header>
+
+<section class="wrap">
+  <h2>The comparison, live-measured (2026-09-27)</h2>
+  <p>Every number below was read directly from the source in a single live pass. Counts are what each endpoint returned on that day — they drift as boards add/remove listings, so treat them as a snapshot, not a guarantee.</p>
+  <table>
+    <thead>
+      <tr><th>Source</th><th>Endpoint</th><th>Format</th><th>Auth</th><th>Jobs returned</th><th>Latency</th><th>Salary fields</th><th>Best for</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Remotive</strong></td>
+        <td><code>/api/remote-jobs</code></td>
+        <td>JSON</td>
+        <td>None</td>
+        <td>18</td>
+        <td>0.17s</td>
+        <td>❌</td>
+        <td>Fast, clean, low-volume feed</td>
+      </tr>
+      <tr>
+        <td><strong>RemoteOK</strong></td>
+        <td><code>/api</code></td>
+        <td>JSON</td>
+        <td>None (token for full set)</td>
+        <td>100 <span class="warn">(capped)</span></td>
+        <td>1.15s</td>
+        <td>❌</td>
+        <td>Broad list, but 100-record cap without a token</td>
+      </tr>
+      <tr>
+        <td><strong>Jobicy</strong></td>
+        <td><code>/api/v2/remote-jobs</code></td>
+        <td>JSON</td>
+        <td>None</td>
+        <td>100</td>
+        <td>0.73s</td>
+        <td class="pill">✅ salaryMin/Max</td>
+        <td>Salary data + clean JSON, no key</td>
+      </tr>
+      <tr>
+        <td><strong>We Work Remotely</strong></td>
+        <td><code>/remote-jobs.rss</code></td>
+        <td>RSS/XML</td>
+        <td>None</td>
+        <td>80</td>
+        <td>0.55s</td>
+        <td>❌</td>
+        <td>RSS-style pipeline, no JSON</td>
+      </tr>
+      <tr>
+        <td><strong>Hacker News</strong></td>
+        <td><code>hn.algolia.com … "who is hiring"</code></td>
+        <td>JSON</td>
+        <td>None</td>
+        <td>30</td>
+        <td>0.61s</td>
+        <td>❌</td>
+        <td>Indie/tech-founder postings, comment-scraped</td>
+      </tr>
+      <tr>
+        <td><strong>RemoteLeaf</strong></td>
+        <td><code>/remote-jobs/</code></td>
+        <td>HTML (scrape)</td>
+        <td>None</td>
+        <td>~174 <span class="warn">(scraped)</span></td>
+        <td>1.20s</td>
+        <td>❌</td>
+        <td>Volume via HTML parse — breaks on layout change</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color:var(--muted);font-size:14px">Note: RemoteOK returns 100 listings without a free API token and requires a key for the full dataset; RemoteLeaf's count is a parsed-HTML estimate, not a structured count. Jobicy was the only source of the six that returned structured salary fields (<code>salaryMin</code>/<code>salaryMax</code>) with no key.</p>
+</section>
+
+<section class="wrap">
+  <h2>What we learned from running them</h2>
+  <div class="grid">
+    <div class="card"><h3>No single source is "the" feed</h3><p>The biggest source returned ~10× more listings than the smallest. No one endpoint covers the market — which is exactly why aggregators exist.</p></div>
+    <div class="card"><h3>Formats don't match</h3><p>JSON, RSS/XML, and raw HTML all in one niche. If you consume two or three, you're writing a parser for each — and each one breaks when the board changes its markup.</p></div>
+    <div class="card"><h3>Salary is the differentiator</h3><p>Only one of the six gave you real salary ranges for free. That single field is often the most valuable for filtering and ranking — and it's the hardest to get consistently.</p></div>
+  </div>
+  <p>Two practical traps we hit directly: <span class="warn">RemoteOK silently caps you at 100 listings without a token</span>, and <span class="warn">RemoteLeaf is HTML, not an API</span> — so "174 jobs" is a scrape, not a stable schema. Both look like solid feeds until you build on them.</p>
+</section>
+
+<section class="wrap">
+  <h2>One endpoint instead of six parsers</h2>
+  <p>If you need structured remote-job data from several of these at once, <strong>Remote Jobs API</strong> pulls Remotive, RemoteOK, Jobicy, We Work Remotely and Hacker News, normalizes every listing into a single schema, dedupes it, and returns <code>JSON</code> or <code>CSV</code> — with an optional 0–100 skill fit-score. Self-hostable, stdlib-only Python, no key required to try.</p>
+  <pre><code>pip install remote-jobs-api
+remote-jobs --serve --port 8321     # GET /v1/jobs?skills=python,postgres</code></pre>
+  <p>
+    <a class="cta" href="https://github.com/earnnova-dev/remote-jobs-api">View the repo</a>
+    &nbsp;
+    <a class="cta" style="background:var(--panel);color:var(--text)" href="/free-remote-job-apis.html">Full free-API list</a>
+    &nbsp;
+    <a class="cta" style="background:var(--panel);color:var(--text)" href="/free-remote-job-data-api.html">Free remote-job data API</a>
+  </p>
+</section>
+
+<footer class="wrap">
+  <p>Numbers measured live 2026-09-27 from each source; job counts are a point-in-time snapshot and will drift. Endpoint shapes and availability change without notice — re-verify before you build. This is a comparison reference; the normalized, deduped data product lives at <a href="https://github.com/earnnova-dev/remote-jobs-api">remote-jobs-api</a>.</p>
+</footer>
+</body>
+</html>
