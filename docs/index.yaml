@@ -2,11 +2,11 @@ apiVersion: v1
 entries:
   remote-jobs-api:
   - apiVersion: v2
-    appVersion: 1.2.0
-    created: "2026-09-27T18:56:11.764622838Z"
+    appVersion: 1.2.1
+    created: "2026-09-27T21:04:02.187878098Z"
     description: Normalized remote-job data API with skill matching, API keys, rate
       limiting and per-plan quotas.
-    digest: 9524ad9dc966740ab1458faa2d8822593794313f1b6803c9167293cc1d4bfe3b
+    digest: f06f7c337ff35cc970cf70e8f3e665936d607be00e80430bdef37d32e220749a
     home: https://github.com/earnnova-dev/remote-jobs-api
     keywords:
     - remote-jobs
@@ -20,6 +20,6 @@ entries:
     - https://github.com/earnnova-dev/remote-jobs-api
     type: application
     urls:
-    - https://earnnova-dev.github.io/remote-jobs-api/remote-jobs-api-1.2.0.tgz
-    version: 1.2.0
-generated: "2026-09-27T18:56:11.764116673Z"
+    - https://earnnova-dev.github.io/remote-jobs-api/remote-jobs-api-1.2.1.tgz
+    version: 1.2.1
+generated: "2026-09-27T21:04:02.187126232Z"
