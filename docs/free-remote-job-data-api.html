@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Remote Job Data API (2026): One Endpoint for 5 Job Boards + Python Examples</title>
+<meta name="description" content="Get structured remote-job data from a free API: 5 boards (Remotive, RemoteOK, We Work Remotely, Jobicy, Hacker News) normalized into one schema, one JSON/CSV endpoint, with a 0-100 skill fit score. Self-host free, MIT, Python stdlib-only.">
+<meta name="keywords" content="free remote job data api, remote job data api, job data api, remote jobs api, job feed api, remote jobs json api, remote work data api, python job data, remoteok api, weworkremotely api, remotive api, job listings api, structured job data">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/free-remote-job-data-api.html">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent2:#3fb950;--code:#111820}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+.wrap{max-width:900px;margin:0 auto;padding:0 22px}
+header{padding:44px 0 24px;border-bottom:1px solid var(--border)}
+h1{font-size:32px;margin:0 0 12px;line-height:1.2}
+.sub{font-size:17px;color:var(--muted);margin:0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13.5px}
+code{background:var(--panel);padding:2px 6px;border-radius:5px;font-size:14px}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+section{padding:30px 0}
+h2{font-size:23px;margin:0 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.job{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.job h3{margin:0 0 6px;font-size:18px}
+.job p{margin:0 0 10px;color:var(--muted);font-size:15px}
+.job .type{font-size:12px;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em}
+.cta{display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;font-weight:600}
+.cta2{display:inline-block;background:var(--accent2);color:#04120a;padding:12px 20px;border-radius:8px;font-weight:600;margin-left:10px}
+footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font-size:14px}
+.note{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:14.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+th,td{border:1px solid var(--border);padding:9px 12px;text-align:left}
+th{background:var(--panel)}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>Free Remote Job Data API (2026)</h1>
+  <p class="sub">One endpoint that returns structured remote-job data from 5 boards in a single schema — JSON or CSV — with an optional 0&ndash;100 skill fit score. Self-host it free (MIT, Python stdlib-only) or call the hosted version.</p>
+</header>
+
+<section class="wrap">
+  <p>Building a job feed, a recruiter tool, a lead-gen model, or an AI agent that needs live remote-job data usually means writing and maintaining five separate scrapers &mdash; one per board, each with its own quirks and breakage. A <strong>remote-job data API</strong> removes that: a single <code>GET /v1/jobs</code> returns every board normalized into one schema, deduplicated, with a reproducible skill fit score so you can rank without a hidden LLM.</p>
+  <div class="note"><strong>What you get:</strong> a <code>GET</code> endpoint returning <code>count</code> + a <code>jobs</code> array of normalized objects (<code>title</code>, <code>company</code>, <code>url</code>, <code>location</code>, <code>category</code>, <code>source</code>, <code>published</code>, and optional <code>fit_score</code>). Boards covered: Remotive, RemoteOK, We Work Remotely, Jobicy, and Hacker News "Who is Hiring". All self-hostable and free &mdash; the same engine also runs as a hosted, high-rate-limit service.</div>
+</section>
+
+<section class="wrap" id="what">
+  <h2>What a job data API gives you</h2>
+  <div class="job"><h3>One schema across every board</h3><p>Remotive is JSON, We Work Remotely is RSS, RemoteOK is HTML-backed JSON. You never write per-board adapters &mdash; the API normalizes all five into identical fields.</p></div>
+  <div class="job"><h3>Structured, not scraped-on-demand</h3><p>Reads the boards' public no-auth endpoints and returns clean JSON/CSV. No browser, no account, no session scraping &mdash; so no CAPTCHAs and no rate-limit roulette on your side.</p></div>
+  <div class="job"><h3>A deterministic fit score</h3><p>Pass <code>skills=python,backend,api</code> and each job gets a reproducible <code>fit_score</code> (0&ndash;100), ranked best-first. No black-box LLM &mdash; the ranking is unit-testable and stable.</p></div>
+  <div class="job"><h3>Self-hostable, zero dependencies</h3><p>Pure Python stdlib. Run it on a laptop, a $5 VPS, or the included Dockerfile. MIT-licensed, free to self-host.</p></div>
+</section>
+
+<section class="wrap" id="endpoint">
+  <h2>The endpoint</h2>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+    <tr><td>GET</td><td><code>/health</code></td><td>Status + live job count</td></tr>
+    <tr><td>GET</td><td><code>/v1/jobs/sources</code></td><td>Available boards</td></tr>
+    <tr><td>GET</td><td><code>/v1/jobs</code></td><td>Normalized job listings</td></tr>
+  </table>
+  <p>Query params on <code>/v1/jobs</code>:</p>
+  <table>
+    <tr><th>Param</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><code>skills</code></td><td>string</td><td>Comma-separated keywords &rarr; adds <code>fit_score</code>, ranks best-first</td></tr>
+    <tr><td><code>source</code></td><td>string</td><td><code>remotive</code> / <code>remoteok</code> / <code>jobicy</code> / <code>wwr</code> / <code>hn</code></td></tr>
+    <tr><td><code>limit</code></td><td>int</td><td>1&ndash;500 (default 50)</td></tr>
+    <tr><td><code>min_score</code></td><td>int</td><td>0&ndash;100, filter by fit (needs <code>skills</code>)</td></tr>
+    <tr><td><code>format</code></td><td>string</td><td><code>json</code> (default) or <code>csv</code></td></tr>
+  </table>
+  <pre><code>curl "https://&lt;your-host&gt;/v1/jobs?skills=python,backend,api&amp;limit=3"</code></pre>
+  <p>Response:</p>
+  <pre><code>{
+  "count": 3,
+  "generated_at": 1790433192,
+  "jobs": [
+    {
+      "id": "94516b10164d3c70",
+      "title": "Senior Backend Developer (Python)",
+      "company": "Proxify AB",
+      "url": "https://weworkremotely.com/remote-jobs/.../senior-backend-developer-python",
+      "location": "Anywhere in the World",
+      "category": "Back-End Programming",
+      "source": "wwr",
+      "published": "Tue, 15 Sep 2026 09:01:36 +0000",
+      "fit_score": 80
+    }
+  ]
+}</code></pre>
+</section>
+
+<section class="wrap" id="install">
+  <h2>Use it right now (free)</h2>
+  <p><strong>Option A &mdash; CLI, no server needed:</strong> query the feed directly.</p>
+  <pre><code>pip install remote-jobs-api
+remote-jobs-api --skills python,api --limit 5
+remote-jobs-api --source wwr --format csv</code></pre>
+  <p><strong>Option B &mdash; run your own API server:</strong></p>
+  <pre><code>pip install remote-jobs-api
+remote-jobs-api --serve --port 8321     # or: python -m remote_jobs_api.server</code></pre>
+  <p><strong>Or from source / Docker:</strong></p>
+  <pre><code>git clone https://github.com/earnnova-dev/remote-jobs-api
+cd remote-jobs-api
+python3 -m remote_jobs_api.server       # listens on :8321
+
+# Docker
+docker build -t remote-jobs-api .
+docker run -p 8321:8321 remote-jobs-api</code></pre>
+  <p>Env vars: <code>PORT</code> (default <code>8321</code>), <code>RJA_CACHE_TTL</code> (default <code>300</code>s, how long upstream fetches are cached).</p>
+</section>
+
+<section class="wrap" id="pricing">
+  <h2>Free vs hosted</h2>
+  <p>Self-hosting is free and MIT. If you want it always-on, high-rate-limit, and managed, the same engine runs as a hosted tier:</p>
+  <table>
+    <tr><th>Plan</th><th>Price</th><th>Includes</th></tr>
+    <tr><td><strong>Free</strong></td><td>$0</td><td>100 calls/mo, all boards, 50 results/req</td></tr>
+    <tr><td><strong>Pro</strong></td><td>$19/mo</td><td>10k calls/mo, CSV, min_score, higher limits</td></tr>
+    <tr><td><strong>Team</strong></td><td>$49/mo</td><td>100k calls/mo, SLA, webhooks (soon)</td></tr>
+  </table>
+</section>
+
+<section class="wrap" id="rja">
+  <h2>Get started</h2>
+  <p>Remote Jobs API is the data endpoint. If you'd rather get <em>alerts</em> than raw data, <a href="https://github.com/earnnova-dev/gigwatch">GigWatch</a> watches the same live feeds and pings you only when a new matching gig appears.</p>
+  <a class="cta" href="https://github.com/earnnova-dev/remote-jobs-api">GitHub repo</a>
+  <a class="cta2" href="https://pypi.org/project/remote-jobs-api/">pip install remote-jobs-api</a>
+</section>
+
+<footer class="wrap">
+  <p>Remote Jobs API &mdash; live, normalized remote-job data across 5 boards, one clean endpoint, one schema. MIT-licensed. Reads public no-auth job-board endpoints only; does not store personal data or scrape authenticated sessions. Built by Nova (<a href="https://github.com/earnnova-dev">earnnova-dev</a>).</p>
+</footer>
+</body>
+</html>
