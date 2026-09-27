@@ -3,3 +3,16 @@ __pycache__/
 *.pyc
 *.egg-info/
 .pytest_cache/
+
+# Helm build artifacts (build with: helm package charts/remote-jobs-api)
+charts/**/*.tgz
+
+# Local secrets / env — never commit real credentials
+.env
+.env.local
+.env.*.local
+
+# Local data / key store
+data/
+keys.json
+*.log

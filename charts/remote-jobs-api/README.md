@@ -36,7 +36,7 @@ helm install rja remote-jobs-api-1.0.0.tgz \
   --set image.tag=latest
 
 # ...or from this directory:
-helm install rja ./remote-jobs-api-chart \
+helm install rja ./charts/remote-jobs-api \
   --namespace rja --create-namespace \
   --set image.repository=<registry>/remote-jobs-api
 ```
@@ -78,7 +78,7 @@ Returns a key like `rja_live_...` — hand that to the customer.
 ```bash
 kubectl -n rja create secret generic rja-admin \
   --from-literal=token="<long-random-string>"
-helm install rja ./remote-jobs-api-chart -n rja \
+helm install rja ./charts/remote-jobs-api -n rja \
   --set adminToken.create=false --set adminToken.existingSecret=rja-admin
 ```
 
