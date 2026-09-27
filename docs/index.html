@@ -90,6 +90,38 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
 </section>
 
 <section class="wrap">
+  <h2>See real, current data</h2>
+  <p>Below is a <strong>live normalized snapshot</strong> of what the engine returns today — real listings from all 5 boards, already in one schema, ranked by a deterministic <code>skills=python,backend,api</code> fit-score. This is the same JSON the API serves, captured on the last release.</p>
+  <div id="realdata" aria-live="polite">
+    <p class="tag">Loading sample…</p>
+    <table id="rtable">
+      <thead><tr><th>Fit</th><th>Source</th><th>Job</th><th>Company / Location</th><th>Published</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="tag" id="rmeta"></p>
+  </div>
+</section>
+<script>
+(function(){
+  var base=""+document.currentScript.src;
+  fetch("sample.json").then(function(r){return r.json()}).then(function(d){
+    var tb=document.querySelector("#rtable tbody");
+    var rows=d.jobs.slice(0,20).map(function(j){
+      var t=(j.title||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+      var c=(j.company||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+      var a="";
+      if(j.url){var u=String(j.url).replace(/&/g,"&amp;");a=" <a href=""+u+"" rel="noopener" target="_blank" title="open listing">↗</a>";}
+      return "<tr><td class='pill'>"+(j.fit_score!=null?j.fit_score:"—")+"</td><td>"+j.source+"</td><td><a href=""+(j.url?String(j.url).replace(/&/g,'&amp;'):"#")+"" rel="noopener" target="_blank">"+t+a+"</a></td><td>"+c+" — "+(j.location||"")+"</td><td>"+(j.published||"—")+"</td></tr>";
+    }).join("");
+    tb.innerHTML=rows;
+    document.getElementById("rmeta").textContent=d.count+" listings across "+d.boards.length+" boards · captured "+new Date(d.generated_at*1000).toUTCString()+" · fit-score for skills="+d.skills_example.join(",");
+  }).catch(function(){
+    document.querySelector("#realdata").innerHTML="<p class='tag'>Snapshot unavailable in this view — see <a href='sample.json'>sample.json</a> for the raw JSON.</p>";
+  });
+})();
+</script>
+
+<section class="wrap">
   <h2>Example</h2>
   <pre><code>curl "https://&lt;your-host&gt;/v1/jobs?skills=python,backend,api&amp;limit=3"</code></pre>
   <pre><code>{
