@@ -50,6 +50,7 @@ class KeyInfo:
     created: int
     calls_this_month: int
     limit: int  # 0 = unlimited
+    owner: str = ""  # account email, if this key is tied to a user
 
 
 class KeyStore:
@@ -82,13 +83,35 @@ class KeyStore:
         os.replace(tmp, self.path)
 
     # ---------- key lifecycle ----------
-    def create(self, plan: str, label: str = "") -> KeyInfo:
+    def create(self, plan: str, label: str = "", owner: str = "") -> KeyInfo:
         if plan not in PLAN_LIMITS:
             raise ValueError(f"unknown plan {plan!r}; choose from {sorted(PLAN_LIMITS)}")
         with self._lock:
-            raw = "rja_live_" if plan != "free" else "rja_free_"
-            raw += secrets.token_hex(12)
+            # Account keys (owner set) always use the live prefix so the value
+            # stays stable and unambiguous across upgrades — the tier is the
+            # plan field, not the prefix. Admin keys keep the free/live split.
+            prefix = "rja_live_" if (owner or plan != "free") else "rja_free_"
+            raw = prefix + secrets.token_hex(12)
             self._data["keys"][raw] = {
+                "plan": plan,
+                "label": label or "",
+                "owner": owner or "",
+                "created": int(time.time()),
+                "month": _month_key(),
+                "calls": 0,
+            }
+            self._save_locked()
+            return self._info(raw)
+
+    def create_with_value(self, key, plan, label=""):
+        """Create a key with a specific value (account layer generates the key
+        so the same value exists in both the account store and key store)."""
+        if plan not in PLAN_LIMITS:
+            raise ValueError("unknown plan %r; choose from %s" % (plan, sorted(PLAN_LIMITS)))
+        if not key:
+            raise ValueError("key value required")
+        with self._lock:
+            self._data["keys"][key] = {
                 "plan": plan,
                 "label": label or "",
                 "created": int(time.time()),
@@ -96,7 +119,20 @@ class KeyStore:
                 "calls": 0,
             }
             self._save_locked()
-            return self._info(raw)
+            return self._info(key)
+
+    def set_plan(self, key, plan):
+        """Update the plan on an existing key (upgrade/downgrade on billing)."""
+        if plan not in PLAN_LIMITS:
+            raise ValueError("unknown plan %r" % (plan,))
+        with self._lock:
+            if key in self._data["keys"]:
+                self._data["keys"][key]["plan"] = plan
+                self._data["keys"][key]["month"] = _month_key()
+                self._data["keys"][key]["calls"] = 0
+                self._save_locked()
+                return True
+            return False
 
     def revoke(self, key: str) -> bool:
         with self._lock:
@@ -127,6 +163,7 @@ class KeyStore:
             created=int(v.get("created", 0)),
             calls_this_month=int(v.get("calls", 0)),
             limit=PLAN_LIMITS.get(v["plan"], 0),
+            owner=v.get("owner", ""),
         )
 
     # ---------- auth + rate limit ----------
