@@ -77,11 +77,13 @@ for e in d.entries[:10]:
 
   <div class="job">
     <h3>4. Jobicy</h3>
-    <p class="type">Public listings</p>
-    <p>Jobicy lists remote jobs (including those aggregated from other boards). The listings are public and readable directly.</p>
+    <p class="type">Keyless JSON API</p>
+    <p>Jobicy aggregates 50+ remote boards and exposes a public JSON endpoint — no API key, no signup. One call returns title, company, industry, geo, level and salary range.</p>
     <pre><code>import requests
-r = requests.get("https://jobicy.com/", timeout=15)
-# parse the public listing markup for the latest jobs</code></pre>
+r = requests.get("https://jobicy.com/api/v2/remote-jobs?count=50", timeout=15)
+jobs = r.json()["jobs"]          # jobTitle, companyName, jobGeo, salaryMin/Max
+for j in jobs[:5]:
+    print(j["jobTitle"], "|", j["companyName"])</code></pre>
   </div>
 
   <div class="job">
