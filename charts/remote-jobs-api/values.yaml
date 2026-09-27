@@ -9,8 +9,11 @@
 #        kubectl get secret rja-<release> -o jsonpath='{.data.token}' | base64 -d
 
 image:
+  # Built automatically by GitHub Actions -> ghcr.io/earnnova-dev/remote-jobs-api
   repository: ghcr.io/earnnova-dev/remote-jobs-api
-  tag: "latest"
+  # Immutable release tag. Do not use "latest" in production.
+  tag: "1.1.0"
+  digest: ""
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
