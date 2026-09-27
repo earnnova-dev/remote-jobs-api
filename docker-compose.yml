@@ -1,0 +1,40 @@
+# Remote Jobs API — self-host (free tier, MIT)
+#
+# One command:   docker compose up -d
+# Stop:          docker compose down
+# Keys + accounts live in a named volume (data/) so they survive restarts.
+#
+# You MUST set RJA_ADMIN_TOKEN (mint API keys via /admin/keys).
+# Generate one:  python3 -c "import secrets;print(secrets.token_urlsafe(32))"
+# Put it in a .env file next to this file, OR export it before `up`:
+#   export RJA_ADMIN_TOKEN=***
+#
+# No Stripe is needed for the free self-host tier. To sell the hosted
+# tiers, set the RJA_STRIPE_* vars (see .env.example).
+
+services:
+  remote-jobs-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/earnnova-dev/remote-jobs-api:1.2.2
+    ports:
+      - "8321:8321"
+    environment:
+      PORT: "8321"
+      # Where keys.json + accounts.json persist (named volume below).
+      RJA_KEYS_PATH: /data/keys.json
+      RJA_ACCOUNTS_PATH: /data/accounts.json
+      # Required for production: admin bearer token for /admin/keys etc.
+      RJA_ADMIN_TOKEN: ${RJA_ADMIN_TOKEN:?Set RJA_ADMIN_TOKEN (see top of this file)}
+      # Dev only — leave 0 in production (401 without a key).
+      RJA_OPEN_MODE: "0"
+      RJA_CACHE_TTL: "300"
+      # Public base URL for links in responses (override for your domain).
+      RJA_BASE_URL: https://remote-jobs-api.tten.no
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+volumes:
+  data:

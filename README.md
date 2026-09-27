@@ -101,6 +101,15 @@ docker build -t remote-jobs-api .
 docker run -p 8321:8321 remote-jobs-api
 ```
 
+Or the fastest way — one command with the included `docker-compose.yml`
+(keys + accounts persist in a named volume):
+
+```bash
+git clone https://github.com/earnnova-dev/remote-jobs-api && cd remote-jobs-api
+export RJA_ADMIN_TOKEN=***            # required: mint keys via /admin/keys
+docker compose up -d                     # live on http://localhost:8321
+```
+
 **Option C — Kubernetes (Helm chart, self-host):**
 
 A production-ready chart ships in the repo (`charts/remote-jobs-api/`) and is
