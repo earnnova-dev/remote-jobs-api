@@ -1,0 +1,138 @@
+# Default values for the remote-jobs-api chart.
+#
+# Two ways to provide the admin token:
+#   1. adminToken.existingSecret -> reference a secret you already created:
+#        kubectl create secret generic rja-admin -n <ns> --from-literal=token="***"
+#        then set adminToken.existingSecret: rja-admin
+#   2. let the chart create it: set adminToken.create: true and it will generate
+#        a random token (stored in the secret). Retrieve with:
+#        kubectl get secret rja-<release> -o jsonpath='{.data.token}' | base64 -d
+
+image:
+  repository: ghcr.io/earnnova-dev/remote-jobs-api
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+autoscaling:
+  enabled: false
+
+service:
+  type: ClusterIP
+  port: 8321
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # ingress:
+  #   enabled: true
+  #   host: api.example.com
+  #   annotations:
+  #     cert-manager.io/cluster-issuer: letsencrypt
+  host: ""
+  tls: []
+  # tls:
+  #   - secretName: rja-tls
+  #     hosts:
+  #       - api.example.com
+
+# The admin token for /admin/keys (create/revoke customer keys).
+adminToken:
+  # Name of the secret to mount. If empty, defaults to "rja-<release>".
+  name: ""
+  # Key inside the secret that holds the token.
+  key: token
+  # If set, use THIS secret (you created it) and the chart will NOT create one.
+  existingSecret: ""
+  # If true (and existingSecret is empty), the chart creates a secret and
+  # generates a random token on first install/upgrade.
+  create: true
+
+# Persisted key store (API keys survive pod restarts).
+persistence:
+  enabled: true
+  size: 64Mi
+  storageClassName: ""
+  # accessModes: [ReadWriteOnce]
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Optional: mount an extra .env file (e.g. RJA_OPEN_MODE, RJA_LOG_LEVEL).
+# The server reads /app/.env inside the container. Provide it as a secret or
+# configmap referenced here.
+extraEnv:
+  - name: RJA_OPEN_MODE
+    value: "0"
+  - name: RJA_KEYS_PATH
+    value: /data/keys.json
+
+# Environment variable overrides appended to the container env.
+# Example:
+#   env:
+#     - name: RJA_LOG_LEVEL
+#       value: "debug"
+env: []
+
+# envFrom entries (secretRef / configMapRef) applied to the container.
+# Example:
+#   envFrom:
+#     - secretRef:
+#         name: rja-extra
+envFrom: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+podAnnotations: {}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+  runAsNonRoot: true
+  runAsUser: 10001
+
+# Readiness/liveness probe tuning (endpoint is /health, public, no auth).
+probe:
+  path: /health
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# NetworkPolicy: restrict egress to outbound HTTP/HTTPS only (feeds are
+# fetched from remotive/remoteok/jobicy/wwr/news.ycombinator.com).
+networkPolicy:
+  enabled: false
+
+# Metrics (prometheus scrape). The app does not expose /metrics yet; this
+# template is a placeholder so you can wire a scraper once added.
+metrics:
+  enabled: false

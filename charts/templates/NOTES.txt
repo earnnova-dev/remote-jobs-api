@@ -1,0 +1,26 @@
+
+Remote-Jobs Data API deployed:
+  Service:  {{ include "remote-jobs-api.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}
+
+{{- if .Values.ingress.enabled }}
+  Ingress:  {{ .Values.ingress.host }}
+{{- else }}
+  Port-forward to test:
+    kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "remote-jobs-api.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+    curl http://localhost:{{ .Values.service.port }}/health
+{{- end }}
+
+Create your first customer key:
+{{- if and .Values.adminToken.create (not .Values.adminToken.existingSecret) }}
+  ADMIN_TOKEN=$(kubectl -n {{ .Release.Namespace }} get secret {{ include "remote-jobs-api.adminSecretName" . }} -o jsonpath="{.data.{{ .Values.adminToken.key }}}")
+  ADMIN_TOKEN=$(echo "$ADMIN_TOKEN" | base64 -d)
+{{- else }}
+  ADMIN_TOKEN="<your admin token>"
+{{- end }}
+
+  curl -X POST http://localhost:{{ .Values.service.port }}/admin/keys \
+    -H "Authorization: Bearer ***" \
+    -H "Content-Type: application/json" \
+    -d '{"plan":"pro","label":"first-customer"}'
+
+Plans: free (100 calls/mo) | pro (10,000) | team (100,000)
