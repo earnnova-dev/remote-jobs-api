@@ -1,0 +1,53 @@
+name: Publish Helm chart to GitHub Pages
+
+# Regenerates the static Helm repository (index.yaml + .tgz) in docs/
+# whenever the chart source changes, so `helm repo add` always works.
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - "charts/remote-jobs-api/**"
+      - ".github/workflows/helm-repo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-helm-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Install Helm
+        run: |
+          curl -sSL https://get.helm.sh/helm-v3.16.4-linux-amd64.tar.gz | tar -xz
+          sudo mv linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
+      - name: Package chart and build index
+        run: |
+          set -e
+          # start from a clean helm artifacts set
+          rm -f docs/*.tgz docs/index.yaml
+          helm package charts/remote-jobs-api -d docs/
+          helm repo index docs/ --url https://earnnova-dev.github.io/remote-jobs-api/
+          echo "--- index.yaml ---"
+          cat docs/index.yaml
+          echo "--- artifacts ---"
+          ls -1 docs/*.tgz docs/index.yaml
+
+      - name: Commit and push (only if changed)
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet docs/ && [ -z "$(git status --porcelain docs/)" ]; then
+            echo "No changes to the Helm repo artifacts; nothing to publish."
+          else
+            git add docs/index.yaml docs/*.tgz
+            git commit -m "charts: publish Helm repo artifacts ($GITHUB_SHA)"
+            git push
+          fi
