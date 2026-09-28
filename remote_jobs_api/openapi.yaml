@@ -104,6 +104,14 @@ paths:
             type: integer
             minimum: 0
             maximum: 100
+        - name: min_salary
+          in: query
+          description: Only return jobs whose parsed top-of-range salary (`salary_max`) is at or above this amount, in the job's own currency. Jobs with no parseable salary are excluded.
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            example: 100000
         - name: format
           in: query
           description: Response format. `json` (default) or `csv`.
@@ -183,6 +191,19 @@ components:
         salary:
           type: string
           description: Salary range string when the board publishes one, else empty.
+        salary_min:
+          type: [number, "null"]
+          description: Parsed lower bound of the salary range (job's own currency). Null when the board gives none.
+        salary_max:
+          type: [number, "null"]
+          description: Parsed upper bound of the salary range (job's own currency). Null when the board gives none.
+        salary_currency:
+          type: [string, "null"]
+          description: ISO 4217 currency code (e.g. USD, EUR). Null when the posting does not state one.
+        salary_period:
+          type: [string, "null"]
+          enum: [year, month, hour, week, day, null]
+          description: Pay period as stated by the board. Null when unstated.
         category:
           type: string
         tags:

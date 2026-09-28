@@ -48,6 +48,7 @@ class Job:
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
         # keep the public schema lean and stable
+        sal = _salary_struct(d["salary"])
         return {
             "id": d["id"],
             "title": d["title"],
@@ -55,6 +56,11 @@ class Job:
             "url": d["url"],
             "location": d["location"],
             "salary": d["salary"],
+            # structured salary (machine-filterable). null when the board gives none.
+            "salary_min": sal["min"],
+            "salary_max": sal["max"],
+            "salary_currency": sal["currency"],
+            "salary_period": sal["period"],
             "category": d["category"],
             "tags": d["tags"],
             "published": _canonical_published(d["published"]),
@@ -93,6 +99,80 @@ def _repair_mojibake(text: str) -> str:
 
 def _h(s: str) -> str:
     return hashlib.sha1((s or "").encode("utf-8")).hexdigest()[:16]
+
+
+_SAL_CURRENCY_RE = re.compile(
+    r"\b(USD|EUR|GBP|CAD|AUD|NZD|CHF|CZK|PLN|INR|SEK|NOK|DKK|JPY|BRL|MXN|SGD|HKD|ZAR|AED|SAR|ILS|PHP|IDR|THB|KRW|CNY|VND)\b",
+    re.I,
+)
+
+
+def parse_salary(text: str) -> Optional[Dict[str, Any]]:
+    """Parse a messy salary string into structured fields.
+
+    Returns {min, max, currency, period} (any field may be None) or None if
+    the string carries no numeric salary. Handles the formats the boards
+    actually emit:
+        'USD 220,000-260,000 / yearly'
+        '$90k - $105k'
+        'CZK 700,600-700,600 / yearly'
+        '130,000-170,000 / yearly'   (no currency)
+        '$80,000-$250,000'
+        'USD 84-106 / hourly'
+    """
+    if not text or not text.strip():
+        return None
+    t = text.strip()
+    tl = t.lower()
+
+    currency = None
+    m = _SAL_CURRENCY_RE.search(t)
+    if m:
+        currency = m.group(1).upper()
+    elif "$" in t:
+        currency = "USD"
+
+    period = None
+    if re.search(r"\bper\s*(year|annum)\b|/\s*(year|annum|yr|yrs)\b|\b(yearly|annually|annual)\b|/y\b|/yr\b", tl):
+        period = "year"
+    elif re.search(r"\bper\s*month\b|/\s*(month|mo|mos|m)\b|\bmonthly\b|/m\b", tl):
+        period = "month"
+    elif re.search(r"\bper\s*hour\b|/\s*(hour|hr|h)\b|\bhourly\b|/h\b", tl):
+        period = "hour"
+    elif re.search(r"\bper\s*week\b|/\s*(week|wk|wks)\b|\bweekly\b", tl):
+        period = "week"
+    elif re.search(r"\bper\s*day\b|/\s*(day|d)\b|\bdaily\b", tl):
+        period = "day"
+
+    # numbers with optional 'k' multiplier
+    nums = re.findall(r"(\d[\d,]*)(k)?", t, re.I)
+    vals = []
+    for n, k in nums:
+        try:
+            v = float(n.replace(",", ""))
+        except ValueError:
+            continue
+        if k:
+            v *= 1000.0
+        vals.append(v)
+    if not vals:
+        return None
+    lo, hi = min(vals), max(vals)
+    # clean float->int when whole
+    def _num(x):
+        return int(x) if float(x).is_integer() else x
+    return {"min": _num(lo), "max": _num(hi), "currency": currency, "period": period}
+
+
+def _salary_struct(salary_text: str) -> Dict[str, Any]:
+    """Convenience: parse_salary + stable key set (all four keys always present)."""
+    p = parse_salary(salary_text) or {}
+    return {
+        "min": p.get("min"),
+        "max": p.get("max"),
+        "currency": p.get("currency"),
+        "period": p.get("period"),
+    }
 
 
 def fetch_remotive(limit: Optional[int] = None) -> List[Job]:
@@ -365,7 +445,8 @@ def _match_score(job: Job, skills: List[str]) -> int:
 
 def filter_and_rank(jobs: List[Job], skills: Optional[List[str]] = None,
                     remote_only: bool = False, source: Optional[str] = None,
-                    min_score: Optional[int] = None) -> List[Dict[str, Any]]:
+                    min_score: Optional[int] = None,
+                    min_salary: Optional[float] = None) -> List[Dict[str, Any]]:
     out = []
     seen = set()
     has_skills = bool(skills)
@@ -383,6 +464,12 @@ def filter_and_rank(jobs: List[Job], skills: Optional[List[str]] = None,
         d["fit_score"] = _match_score(j, skills) if has_skills else None
         if min_score is not None and (d["fit_score"] is None or d["fit_score"] < min_score):
             continue
+        # min_salary: keep only jobs whose parsed top-of-range meets it.
+        # Jobs with no parseable salary are excluded when the filter is active.
+        if min_salary is not None:
+            top = d.get("salary_max")
+            if top is None or top < min_salary:
+                continue
         out.append(d)
     # best fit first (jobs without skills sort by fit=0), then newest
     out.sort(key=lambda d: ((d["fit_score"] or 0), d["published"]), reverse=True)

@@ -243,13 +243,23 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(400, {"error": "min_score must be between 0 and 100"})
             if not skills:
                 return self._json(400, {"error": "min_score requires skills"})
+        min_salary = None
+        if q.get("min_salary", [""])[0].strip():
+            try:
+                min_salary = float(q["min_salary"][0])
+            except (ValueError, TypeError):
+                return self._json(400, {"error": "min_salary must be a number"})
+            if min_salary < 0:
+                return self._json(400, {"error": "min_salary must be >= 0"})
         fmt = (q.get("format", ["json"])[0] or "json").lower()
         if fmt not in ("json", "csv"):
             return self._json(400, {"error": "format must be json or csv"})
-        jobs = feed.filter_and_rank(_cached_all(), skills=skills, source=source, min_score=min_score)[:limit]
+        jobs = feed.filter_and_rank(_cached_all(), skills=skills, source=source,
+                                    min_score=min_score, min_salary=min_salary)[:limit]
         if fmt == "csv":
             buf = io.StringIO()
             cols = ["id", "title", "company", "location", "salary",
+                    "salary_min", "salary_max", "salary_currency", "salary_period",
                     "category", "source", "published", "fit_score", "url"]
             w = csv.DictWriter(buf, fieldnames=cols, extrasaction="ignore")
             w.writeheader()
@@ -259,7 +269,8 @@ class Handler(BaseHTTPRequestHandler):
         return self._json(200, {
             "count": len(jobs),
             "generated_at": int(time.time()),
-            "query": {"skills": skills, "source": source, "min_score": min_score, "limit": limit},
+            "query": {"skills": skills, "source": source, "min_score": min_score,
+                      "min_salary": min_salary, "limit": limit},
             "jobs": jobs,
         })
 

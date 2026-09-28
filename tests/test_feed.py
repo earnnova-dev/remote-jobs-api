@@ -141,6 +141,87 @@ def test_filter_dedupe_same_title_company_source():
     assert "c" in ids
 
 
+# --- parse_salary --------------------------------------------------------
+
+def _ps(text: str):
+    """parse_salary, asserting a dict (type-narrowed)."""
+    p = feed.parse_salary(text)
+    assert p is not None, f"expected a parsed salary from {text!r}"
+    return p
+
+
+def test_parse_salary_range_with_currency():
+    p = _ps("USD 220,000-260,000 / yearly")
+    assert p == {"min": 220000, "max": 260000, "currency": "USD", "period": "year"}
+
+
+def test_parse_salary_dollar_sign_usd():
+    p = _ps("$80,000-$250,000")
+    assert p["currency"] == "USD"
+    assert p["min"] == 80000 and p["max"] == 250000
+    assert p["period"] is None  # unstated
+
+
+def test_parse_salary_k_suffix():
+    p = _ps("$90k - $105k")
+    assert p["min"] == 90000 and p["max"] == 105000
+
+
+def test_parse_salary_no_currency_code():
+    # '130,000-170,000 / yearly' has a period but no currency symbol
+    p = _ps("130,000-170,000 / yearly")
+    assert p["currency"] is None
+    assert p["period"] == "year"
+    assert p["min"] == 130000 and p["max"] == 170000
+
+
+def test_parse_salary_hourly():
+    p = _ps("USD 84-106 / hourly")
+    assert p["period"] == "hour"
+    assert p["min"] == 84 and p["max"] == 106
+
+
+def test_parse_salary_monthly():
+    p = _ps("USD 500-600 / monthly")
+    assert p["period"] == "month"
+
+
+def test_parse_salary_empty_or_none():
+    assert feed.parse_salary("") is None
+    assert feed.parse_salary("No salary listed") is None
+    assert feed.parse_salary("   ") is None
+
+
+# --- min_salary filter ---------------------------------------------------
+
+def test_filter_min_salary_excludes_below_and_missing():
+    # Distinct titles so the dedupe (title+company+source) does not collapse them.
+    a = _job(id="a", title="Senior Python Engineer", salary="USD 200,000 / yearly")
+    b = _job(id="b", title="Junior Python Engineer", salary="USD 50,000 / yearly")
+    c = _job(id="c", title="Intern Python Engineer", salary="")  # no parseable salary
+    out = filter_and_rank([a, b, c], min_salary=100000)
+    ids = {d["id"] for d in out}
+    assert "a" in ids      # 200k >= 100k
+    assert "b" not in ids  # 50k < 100k
+    assert "c" not in ids  # no salary -> excluded when filter active
+
+
+def test_filter_min_salary_off_returns_all_with_salary():
+    # Distinct titles so the dedupe (title+company+source) does not collapse them.
+    a = _job(id="a", title="Senior Python Engineer", salary="USD 200,000 / yearly")
+    c = _job(id="c", title="Junior Python Engineer", salary="")
+    out = filter_and_rank([a, c])  # no min_salary -> keep everything
+    assert {d["id"] for d in out} == {"a", "c"}
+
+
+def test_to_dict_exposes_structured_salary():
+    d = _job(id="a", salary="EUR 109,000-128,000 / yearly").to_dict()
+    assert d["salary_min"] == 109000
+    assert d["salary_max"] == 128000
+    assert d["salary_currency"] == "EUR"
+    assert d["salary_period"] == "year"
+
+
 # --- sources registry ----------------------------------------------------
 
 def test_sources_known():
