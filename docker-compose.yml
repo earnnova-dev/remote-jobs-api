@@ -17,7 +17,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/earnnova-dev/remote-jobs-api:1.2.2
+    image: ghcr.io/earnnova-dev/remote-jobs-api:1.2.4
     ports:
       - "8321:8321"
     environment:
@@ -32,6 +32,14 @@ services:
       RJA_CACHE_TTL: "300"
       # Public base URL for links in responses (override for your domain).
       RJA_BASE_URL: https://remote-jobs-api.tten.no
+      # Password reset email (SMTP). Leave RJA_SMTP_HOST empty to disable
+      # (reset then fails closed — no link anywhere). See .env.example.
+      RJA_SMTP_HOST: ${RJA_SMTP_HOST:-}
+      RJA_SMTP_PORT: ${RJA_SMTP_PORT:-587}
+      RJA_SMTP_USER: ${RJA_SMTP_USER:-}
+      RJA_SMTP_PASS: ${RJA_SMTP_PASS:-}
+      RJA_SMTP_FROM: ${RJA_SMTP_FROM:-no-reply@remote-jobs-api.tten.no}
+      RJA_RESET_FALLBACK_LOG: ${RJA_RESET_FALLBACK_LOG:-0}
     volumes:
       - data:/data
     restart: unless-stopped

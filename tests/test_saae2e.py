@@ -24,6 +24,45 @@ ACCOUNTS = os.environ.get("RJA_ACCOUNTS_PATH", "/tmp/rjaa.json")
 KEYS = os.environ.get("RJA_KEYS_PATH", "/tmp/rjakeys.json")
 
 
+class MailerUnit(unittest.TestCase):
+    """Unit tests for the SMTP mailer (no real server — inspects the built message)."""
+
+    def _build(self, **kw):
+        from remote_jobs_api.mailer import Mailer
+        return Mailer(host="mail.example.com", from_addr="no-reply@example.com", **kw)
+
+    def test_configured_flag(self):
+        from remote_jobs_api.mailer import Mailer
+        self.assertTrue(self._build().configured)
+        self.assertFalse(Mailer(host="").configured)
+
+    def test_from_env_parses(self):
+        from remote_jobs_api.mailer import Mailer
+        for k in ("RJA_SMTP_HOST", "RJA_SMTP_PORT", "RJA_SMTP_USER", "RJA_SMTP_PASS",
+                  "RJA_SMTP_FROM", "RJA_SMTP_SSL", "RJA_SMTP_STARTTLS"):
+            os.environ.pop(k, None)
+        os.environ["RJA_SMTP_HOST"] = "10.0.0.5"
+        os.environ["RJA_SMTP_PORT"] = "465"
+        os.environ["RJA_SMTP_SSL"] = "1"
+        m = Mailer.from_env()
+        self.assertEqual(m.host, "10.0.0.5")
+        self.assertEqual(m.port, 465)
+        self.assertTrue(m.use_ssl)
+        self.assertTrue(m.configured)
+
+    def test_send_requires_host(self):
+        from remote_jobs_api.mailer import Mailer, MailError
+        with self.assertRaises(MailError):
+            Mailer(host="").send("a@b.com", "s", "t")
+
+    def test_reset_html_contains_link_and_expiry(self):
+        from remote_jobs_api.mailer import reset_email_html
+        html = reset_email_html("Reset", "user@example.com", "http://x/reset?token=abc", 30)
+        self.assertIn("user@example.com", html)
+        self.assertIn("http://x/reset?token=abc", html)
+        self.assertIn("30 minutes", html)
+
+
 class ResetTokenUnit(unittest.TestCase):
     """Unit-level test of the password-reset state machine (no server needed)."""
 

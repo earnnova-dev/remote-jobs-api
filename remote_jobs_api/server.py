@@ -30,6 +30,9 @@ Env:
   RJA_STRIPE_WEBHOOK_SECRET
   RJA_STRIPE_PRICE_PRO
   RJA_STRIPE_PRICE_TEAM
+  RJA_SMTP_HOST RJA_SMTP_PORT RJA_SMTP_USER RJA_SMTP_PASS
+  RJA_SMTP_FROM RJA_SMTP_FROM_NAME RJA_SMTP_SSL RJA_SMTP_STARTTLS
+  RJA_RESET_FALLBACK_LOG   (dev: print reset link to server console, never the UI)
 Run:  python3 -m remote_jobs_api.server
 """
 from __future__ import annotations
@@ -48,6 +51,7 @@ from .auth import KeyStore, RateLimitError, bearer_token_from_headers
 from .accounts import UserStore
 from . import web
 from .stripe_client import StripeClient, verify_signature, StripeError
+from .mailer import Mailer, MailError, reset_email_html
 
 # --- .env loader (stdlib, no deps) --------------------------------------
 def _load_dotenv(path: str):
@@ -94,6 +98,12 @@ _PRICE_TEAM = os.environ.get("RJA_STRIPE_PRICE_TEAM", "")
 _STRIPE = StripeClient(_STRIPE_KEY) if _STRIPE_KEY else None
 _STRIPE_CONFIGURED = bool(_STRIPE_KEY and _PRICE_PRO and _PRICE_TEAM)
 _PRICE_TO_PLAN = {p: pl for p, pl in [(_PRICE_PRO, "pro"), (_PRICE_TEAM, "team")] if p}
+
+# Transactional email (password reset). The reset link is NEVER shown in the
+# UI; it is only delivered by email, or — if no SMTP is configured — logged to
+# the server console (a private operator-only channel) so self-hosters can still
+# recover. A user without email access cannot reset their own account.
+_MAILER = Mailer.from_env()
 
 PLAN_DEFAULT_PRICES = {"free": 0, "pro": 19, "team": 49}
 
@@ -305,10 +315,41 @@ class Handler(BaseHTTPRequestHandler):
         token = _accounts.create_reset_token(email)
         # Deliberately do NOT reveal whether the account exists: same message either way.
         if token:
-            # Dev/provisioning: no SMTP wired yet, so surface the link directly.
             link = f"{_BASE_URL}/reset?token={token}"
-            return self._handle_forgot_page(ok=f"Password reset link (dev): {link}")
-        return self._handle_forgot_page(ok="If that address is registered, a reset link has been sent. Check your inbox (or try again in a minute).")
+            subject = "Reset your Remote Jobs API password"
+            html = reset_email_html(subject, email, link, 30)
+            text = (
+                "Hi,\n\nYou requested a password reset for Remote Jobs API.\n"
+                f"Reset your password here (expires in 30 minutes):\n{link}\n\n"
+                "If you didn't request this, you can ignore this email.\n"
+            )
+            delivered = False
+            if _MAILER.configured:
+                try:
+                    _MAILER.send(email, subject, text, html)
+                    delivered = True
+                except MailError as e:
+                    # Log, but never surface the link to the UI.
+                    print(f"[reset] failed to email {email}: {e}", flush=True)
+            if not delivered:
+                if os.environ.get("RJA_RESET_FALLBACK_LOG", "0") == "1":
+                    # Private operator-only channel (self-host without email).
+                    # NEVER sent to the browser.
+                    print(f"[reset] link for {email}: {link}", flush=True)
+                else:
+                    # Fail closed: no SMTP and no opt-in log -> the token is
+                    # issued but no link is exposed anywhere.
+                    print(f"[reset] token issued for {email} but email is not configured; "
+                          "link not exposed (configure RJA_SMTP_HOST or set RJA_RESET_FALLBACK_LOG=1)",
+                          flush=True)
+            return self._handle_forgot_page(
+                ok="If that address is registered, a password reset link has been sent to your inbox. "
+                   "Check your email (and spam folder)."
+            )
+        return self._handle_forgot_page(
+            ok="If that address is registered, a password reset link has been sent to your inbox. "
+               "Check your email (and spam folder)."
+        )
 
     def _handle_reset_page(self, token: str, error="", ok=""):
         email = _accounts.validate_reset_token(token)

@@ -12,7 +12,7 @@ image:
   # Built automatically by GitHub Actions -> ghcr.io/earnnova-dev/remote-jobs-api
   repository: ghcr.io/earnnova-dev/remote-jobs-api
   # Immutable release tag. Do not use "latest" in production.
-  tag: "1.2.3"
+  tag: "1.2.4"
   digest: ""
   pullPolicy: IfNotPresent
 
@@ -94,16 +94,30 @@ env: []
 
 # envFrom entries (secretRef / configMapRef) applied to the container env.
 #
-# Stripe billing: create a secret once (do NOT commit the values):
+# Secrets you may mount here (do NOT commit the values):
+#
+#   Stripe billing:
 #   kubectl -n rja create secret generic rja-stripe \
 #     --from-literal=RJA_STRIPE_SECRET_KEY='***' \
 #     --from-literal=RJA_STRIPE_WEBHOOK_SECRET='***' \
 #     --from-literal=RJA_STRIPE_PRICE_PRO='price_...' \
 #     --from-literal=RJA_STRIPE_PRICE_TEAM='price_...'
-# then uncomment this block:
+#
+#   Password-reset email (SMTP) — REQUIRED for production so the reset link
+#   is delivered by email (it is never shown on the website):
+#   kubectl -n rja create secret generic rja-smtp \
+#     --from-literal=RJA_SMTP_HOST='mail.example.com' \
+#     --from-literal=RJA_SMTP_PORT='587' \
+#     --from-literal=RJA_SMTP_USER='smtp@example.com' \
+#     --from-literal=RJA_SMTP_PASS='***' \
+#     --from-literal=RJA_SMTP_FROM='no-reply@remote-jobs-api.tten.no'
+#
+# Then uncomment the blocks you need:
 #   envFrom:
 #     - secretRef:
 #         name: rja-stripe
+#     - secretRef:
+#         name: rja-smtp
 envFrom: []
 
 nodeSelector: {}
