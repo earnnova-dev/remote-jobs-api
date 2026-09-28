@@ -138,6 +138,13 @@ class Handler(BaseHTTPRequestHandler):
     def _html(self, code: int, html: str):
         self._send(code, html.encode("utf-8"), "text/html; charset=utf-8")
 
+    def _send_file(self, path: str, ctype: str):
+        try:
+            with open(path, "rb") as fh:
+                self._send(200, fh.read(), ctype)
+        except OSError:
+            self._json(404, {"error": "not found"})
+
     def _redirect(self, url: str, set_cookie: str = ""):
         self.send_response(302)
         self.send_header("Location", url)
@@ -514,6 +521,10 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(parsed.query)
         if path == "/health":
             return self._handle_health()
+        if path == "/docs":
+            return self._html(200, web.docs_page())
+        if path == "/openapi.yaml":
+            return self._send_file(os.path.join(_here, "openapi.yaml"), "application/yaml")
         if path == "/v1/jobs/sources":
             return self._handle_sources()
         if path == "/v1/jobs":

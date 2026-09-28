@@ -1,0 +1,205 @@
+openapi: 3.1.0
+info:
+  title: Remote Jobs API
+  version: 1.0.0
+  description: |
+    Live, normalized remote-job listings across 5 job boards (Remotive,
+    RemoteOK, Jobicy, We Work Remotely, Hacker News "Who is Hiring?") in one
+    clean schema. Filter by skills and get a deterministic 0-100 fit score.
+    Built for job boards, recruiter tooling, lead-gen, market research, and
+    AI agents that need structured job data in a single call.
+
+    No scraping of your session, no browser, no per-board accounts. One
+    endpoint, one schema.
+  contact:
+    name: Nova
+    url: https://github.com/earnnova-dev/remote-jobs-api
+servers:
+  - url: https://remote-jobs-api.example.com
+    description: Example server (replace with your hosted endpoint)
+
+paths:
+  /health:
+    get:
+      summary: Health & live count
+      operationId: health
+      responses:
+        "200":
+          description: Service status and number of live jobs currently cached.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  sources:
+                    type: array
+                    items:
+                      type: string
+                  count_live:
+                    type: integer
+                    example: 324
+              example:
+                status: ok
+                sources: [remotive, remoteok, jobicy, wwr, hn]
+                count_live: 324
+
+  /v1/jobs/sources:
+    get:
+      summary: List available job-board sources
+      operationId: listSources
+      responses:
+        "200":
+          description: The set of supported source boards.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sources:
+                    type: array
+                    items:
+                      type: string
+                      enum: [remotive, remoteok, jobicy, wwr, hn]
+
+  /v1/jobs:
+    get:
+      summary: Get normalized remote job listings
+      operationId: getJobs
+      description: |
+        Returns a deduped, sorted list of remote jobs across boards. When
+        `skills` is provided each job carries a deterministic `fit_score`
+        (0-100) and results are ranked best-fit-first.
+      parameters:
+        - name: skills
+          in: query
+          description: Comma-separated keywords to match and rank by (e.g. "python,backend,api").
+          required: false
+          schema:
+            type: string
+            example: python,backend,api
+        - name: source
+          in: query
+          description: Restrict results to a single board.
+          required: false
+          schema:
+            type: string
+            enum: [remotive, remoteok, jobicy, wwr, hn]
+        - name: limit
+          in: query
+          description: Maximum number of results to return.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+        - name: min_score
+          in: query
+          description: Only return jobs with a fit_score at or above this value (0-100). Requires `skills`.
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+        - name: format
+          in: query
+          description: Response format. `json` (default) or `csv`.
+          required: false
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+      responses:
+        "200":
+          description: A list of normalized remote jobs.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 3
+                  generated_at:
+                    type: integer
+                    example: 1790433192
+                  query:
+                    type: object
+                  jobs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Job"
+              example:
+                count: 1
+                generated_at: 1790433192
+                query:
+                  skills: [python, api]
+                  source: null
+                  min_score: null
+                  limit: 1
+                jobs:
+                  - id: 94516b10164d3c70
+                    title: Senior Backend Developer (Python)
+                    company: Proxify AB
+                    url: https://weworkremotely.com/remote-jobs/proxify-ab-senior-backend-developer-python-10
+                    location: Anywhere in the World
+                    salary: ""
+                    category: Back-End Programming
+                    tags: []
+                    published: "2026-09-15T09:01:36+00:00"
+                    source: wwr
+                    description: "Headquarters: Sweden ... Senior Python Developer ... Django ... PostgreSQL ..."
+                    fit_score: 40
+        "400":
+          description: Bad request (unknown source, non-integer limit/min_score).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+components:
+  schemas:
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Stable unique identifier (derived from source id or URL hash).
+        title:
+          type: string
+        company:
+          type: string
+        url:
+          type: string
+          description: Direct link to the original posting.
+        location:
+          type: string
+        salary:
+          type: string
+          description: Salary range string when the board publishes one, else empty.
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        published:
+          type: string
+          description: Publication timestamp normalized to a single canonical ISO-8601 UTC string (YYYY-MM-DDTHH:MM:SS+00:00); empty when the source provides none.
+        source:
+          type: string
+          enum: [remotive, remoteok, jobicy, wwr, hn]
+        description:
+          type: string
+          description: Truncated job description (max 500 chars).
+        fit_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Deterministic skill-fit score; present when `skills` is supplied.

@@ -111,6 +111,64 @@ footer { border-top: 1px solid var(--border); margin-top: 50px; padding: 26px 0;
 """
 
 
+# Live-demo JS (kept out of the landing f-string: its object-literal braces
+# would otherwise be parsed as Python expressions).
+_DEMO_JS = r"""
+<script>
+(function(){
+  var list=document.getElementById('demo-list'),
+      status=document.getElementById('demo-status'),
+      err=document.getElementById('demo-err'),
+      copy=document.getElementById('demo-copy');
+  var escMap={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return escMap[c];});}
+  function load(){
+    var sk=document.getElementById('demo-skills').value.trim(),
+        src=document.getElementById('demo-source').value;
+    var q=new URLSearchParams();
+    if(sk) q.set('skills',sk);
+    if(src) q.set('source',src);
+    q.set('limit','6');
+    var url='/v1/jobs?'+q.toString();
+    status.textContent='Loading\u2026'; err.style.display='none'; list.innerHTML='';
+    fetch(url,{headers:{'Accept':'application/json'}}).then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    }).then(function(d){
+      var n=(d.jobs||[]).length;
+      status.textContent=n+' live jobs' + (sk?(' \u00b7 ranked by fit for "'+sk+'"'):'') + (src?(' \u00b7 source: '+src):'');
+      if(!n){ status.textContent='No jobs matched \u2014 try fewer skills.'; return; }
+      list.innerHTML=(d.jobs||[]).map(function(j){
+        var score=(j.fit_score!=null)?' <span class="badge pro">fit '+j.fit_score+'</span>':'';
+        var sal=j.salary? ' <span style="color:var(--muted);font-size:12px">\u00b7 '+esc(j.salary)+'</span>':'';
+        return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px">'
+          +'<div style="font-weight:600;font-size:15px">'+(j.fit_score!=null?'<span style="color:var(--muted);font-weight:400">['+j.fit_score+'] </span>':'')+esc(j.title)+' '+score+'</div>'
+          +'<div style="color:var(--muted);font-size:13px;margin-top:2px">'+esc(j.company)+' \u00b7 '+esc(j.location||'Remote')+sal+'</div>'
+          +'<a href="'+esc(j.url)+'" target="_blank" rel="noopener" style="font-size:13px">'+esc(j.source)+'</a></div>';
+      }).join('');
+      copy.style.visibility='visible';
+      copy.onclick=function(){
+        var base='https://remote-jobs-api.tten.no'+url;
+        var cmd='curl -H "Authorization: Bearer ***" "'+base+'"';
+        (navigator.clipboard?navigator.clipboard.writeText(cmd):Promise.reject()).then(function(){
+          copy.textContent='Copied!'; setTimeout(function(){copy.textContent='Copy this curl';},1500);
+        }).catch(function(){copy.textContent=cmd;});
+      };
+    }).catch(function(e){
+      err.style.display='block';
+      err.textContent='Could not load live jobs ('+e.message+'). The API may require a key or be rate-limited \u2014 see /docs.';
+      status.textContent='';
+    });
+  }
+  document.getElementById('demo-go').onclick=load;
+  document.getElementById('demo-skills').addEventListener('keydown',function(e){if(e.key==='Enter')load();});
+  document.getElementById('demo-source').onchange=load;
+  load();
+})();
+</script>
+"""
+
+
 def landing(stripe_configured: bool = False, prices: Optional[dict] = None,
             sources=None) -> str:
     prices = prices or {}
@@ -177,12 +235,33 @@ def landing(stripe_configured: bool = False, prices: Optional[dict] = None,
   </div>
 
   <div class="section">
+    <h2>Try it live</h2>
+    <p style="color:var(--muted);margin:0 0 14px">This is the real API — no mock data. Type skills to rank by fit, or leave blank for the latest listings.</p>
+    <div class="card" id="demo-card">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <input id="demo-skills" placeholder="e.g. python, backend, remote" style="max-width:320px">
+        <select id="demo-source" style="max-width:170px"><option value="">All boards</option>
+          <option value="remotive">Remotive</option><option value="remoteok">RemoteOK</option>
+          <option value="jobicy">Jobicy</option><option value="wwr">We Work Remotely</option>
+          <option value="hn">Hacker News</option></select>
+        <button class="btn" id="demo-go" type="button">Load jobs</button>
+        <button class="btn btn-ghost" id="demo-copy" type="button" style="visibility:hidden">Copy this curl</button>
+      </div>
+      <div id="demo-status" style="color:var(--muted);font-size:13px;margin-bottom:10px">Loading…</div>
+      <div id="demo-list" style="display:grid;gap:10px"></div>
+      <div id="demo-err" class="error" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="section">
     <h2>Example</h2>
-<pre class="card" style="overflow:auto"><code>curl -H "Authorization: Bearer rja_live_… " \\
+<pre class="card" style="overflow:auto"><code>curl -H "Authorization: Bearer *** " \\
   "https://remote-jobs-api.tten.no/v1/jobs?skills=python,api&amp;limit=5"</code></pre>
+    <p style="margin-top:14px;color:var(--muted);font-size:14px">Full reference: <a href="/docs">API docs</a> · <a href="/openapi.yaml">OpenAPI spec</a></p>
   </div>
 </div>
-<footer><div class="wrap">© 2026 Remote Jobs API · <a href="mailto:earnnova@tten.no">earnnova@tten.no</a></div></footer>
+{_DEMO_JS}
+<footer><div class="wrap">© 2026 Remote Jobs API · <a href="/docs">Docs</a> · <a href="mailto:earnnova@tten.no">earnnova@tten.no</a></div></footer>
 </body></html>"""
 
 
@@ -340,3 +419,88 @@ def _shell(title: str, body: str) -> str:
 {body}
 <footer><div class="wrap">© 2026 Remote Jobs API · <a href="mailto:earnnova@tten.no">earnnova@tten.no</a></div></footer>
 </body></html>"""
+
+
+def docs_page() -> str:
+    body = """
+<div class="wrap" style="max-width:840px;padding-top:40px">
+  <h1 style="margin:0 0 6px">API documentation</h1>
+  <p style="color:var(--muted);margin:0 0 24px">Base URL: <span class="code">https://remote-jobs-api.tten.no</span> · <a href="/openapi.yaml">OpenAPI 3.1 spec</a></p>
+
+  <h2>Quickstart</h2>
+  <p>1. <a href="/register">Create an account</a> — your API key is issued instantly and shown on your dashboard.</p>
+  <p>2. Call the API with your key:</p>
+<pre class="card" style="overflow:auto"><code>curl -H "Authorization: Bearer ***" \\
+  "https://remote-jobs-api.tten.no/v1/jobs?skills=python,backend&amp;limit=5"</code></pre>
+
+  <h2>Authentication</h2>
+  <p>Send your key as a Bearer token in the <code>Authorization</code> header. Open mode is currently on, so <code>/v1/jobs</code> also works with no key (unlimited, unattributed). Paid keys carry monthly call quotas and usage tracking.</p>
+
+  <h2>Endpoints</h2>
+  <table class="table">
+    <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+    <tr><td>GET</td><td><code>/health</code></td><td>Status + live job count + active sources</td></tr>
+    <tr><td>GET</td><td><code>/v1/jobs/sources</code></td><td>Available job boards</td></tr>
+    <tr><td>GET</td><td><code>/v1/jobs</code></td><td>Normalized job listings (JSON or CSV)</td></tr>
+  </table>
+
+  <h2>GET /v1/jobs — query parameters</h2>
+  <table class="table">
+    <tr><th>Param</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><code>skills</code></td><td>string</td><td>Comma-separated keywords. Adds a <code>fit_score</code> (0–100) to each job and ranks best-first.</td></tr>
+    <tr><td><code>source</code></td><td>string</td><td><code>remotive</code> / <code>remoteok</code> / <code>jobicy</code> / <code>wwr</code> / <code>hn</code></td></tr>
+    <tr><td><code>min_score</code></td><td>int</td><td>Only return jobs with <code>fit_score</code> ≥ N (requires <code>skills</code>).</td></tr>
+    <tr><td><code>limit</code></td><td>int</td><td>1–500 (default 50).</td></tr>
+    <tr><td><code>format</code></td><td>string</td><td><code>json</code> (default) or <code>csv</code>.</td></tr>
+  </table>
+
+  <h2>Response shape</h2>
+<pre class="card" style="overflow:auto"><code>{
+  "count": 5,
+  "generated_at": 1790573039,
+  "query": { "skills": ["python","backend"], "source": null, "min_score": null, "limit": 5 },
+  "jobs": [
+    {
+      "id": "154115",
+      "title": "Account Manager, Ada Accelerate",
+      "company": "Ada",
+      "url": "https://jobicy.com/jobs/154115-...",
+      "location": "Canada / Director",
+      "salary": "130,000-170,000 / yearly",
+      "category": "",
+      "tags": ["Customer Support & Success", "Full-Time"],
+      "published": "2026-09-27T20:36:28+00:00",
+      "source": "jobicy",
+      "description": "About Us ...",
+      "fit_score": 50
+    }
+  ]
+}</code></pre>
+  <p style="color:var(--muted);font-size:14px"><code>fit_score</code> is only present when <code>skills</code> is supplied. It is a deterministic keyword-overlap score (no LLM) — reproducible and unit-testable.</p>
+
+  <h2>Rate limits &amp; plans</h2>
+  <table class="table">
+    <tr><th>Plan</th><th>Calls / month</th><th>Price</th></tr>
+    <tr><td>Free</td><td>100</td><td>$0</td></tr>
+    <tr><td>Pro</td><td>10,000</td><td>$19</td></tr>
+    <tr><td>Team</td><td>100,000</td><td>$49</td></tr>
+  </table>
+  <p style="color:var(--muted);font-size:14px">Exceeding your monthly quota returns <code>429</code> with <code>{"error": "...", "retry": "next month"}</code>.</p>
+
+  <h2>Error codes</h2>
+  <table class="table">
+    <tr><th>Code</th><th>Meaning</th></tr>
+    <tr><td>400</td><td>Bad request (unknown source, limit out of range, min_score without skills)</td></tr>
+    <tr><td>401</td><td>Missing or invalid API key (when key is required)</td></tr>
+    <tr><td>429</td><td>Monthly quota exceeded</td></tr>
+    <tr><td>5xx</td><td>Upstream board / server error — retry</td></tr>
+  </table>
+
+  <h2>Example: CSV export</h2>
+<pre class="card" style="overflow:auto"><code>curl -H "Authorization: Bearer ***" \\
+  "https://remote-jobs-api.tten.no/v1/jobs?skills=data,ml&amp;limit=100&amp;format=csv" -o jobs.csv</code></pre>
+
+  <h2>Questions</h2>
+  <p>Reach us at <a href="mailto:earnnova@tten.no">earnnova@tten.no</a>.</p>
+</div>"""
+    return _shell("API docs", body)
