@@ -110,6 +110,37 @@ def test_rank_best_fit_first():
     assert out[0]["fit_score"] > out[1]["fit_score"]
 
 
+def test_filter_no_skills_fit_score_null():
+    # Without skills there is no notion of fit: fit_score must be null,
+    # NOT a fake constant (the old behaviour returned 50 for every job).
+    out = filter_and_rank([_job(id="a"), _job(id="b", title="Other")])
+    assert out, "expected jobs back"
+    assert all(d["fit_score"] is None for d in out)
+
+
+def test_filter_with_skills_fit_score_int():
+    # With skills, fit_score is a real int (not null) and varies by match.
+    a = _job(id="a", title="Python Developer")
+    b = _job(id="b", title="Growth Designer")
+    out = filter_and_rank([a, b], skills=["python"])
+    assert all(isinstance(d["fit_score"], int) for d in out)
+    by_id = {d["id"]: d["fit_score"] for d in out}
+    assert by_id["a"] > by_id["b"]  # title hit > no hit
+
+
+def test_filter_dedupe_same_title_company_source():
+    # Boards repost; identical title+company+source is one job, not two.
+    a = _job(id="a", title="Backend Dev", company="Acme", source="wwr")
+    b = _job(id="b", title="Backend Dev", company="Acme", source="wwr")
+    c = _job(id="c", title="Backend Dev", company="Acme", source="remotive")  # different source = kept
+    out = filter_and_rank([a, b, c])
+    ids = {d["id"] for d in out}
+    assert len(ids) == 2
+    # b (exact dup of a within same source) is dropped; c (different source) kept
+    assert "b" not in ids
+    assert "c" in ids
+
+
 # --- sources registry ----------------------------------------------------
 
 def test_sources_known():

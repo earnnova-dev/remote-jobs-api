@@ -199,7 +199,7 @@ components:
           type: string
           description: Truncated job description (max 500 chars).
         fit_score:
-          type: integer
+          type: [integer, "null"]
           minimum: 0
           maximum: 100
-          description: Deterministic skill-fit score; present when `skills` is supplied.
+          description: Deterministic skill-fit score (0-100). Present only when `skills` is supplied; `null` otherwise (no notion of fit without a query).

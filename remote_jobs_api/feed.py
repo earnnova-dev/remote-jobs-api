@@ -367,14 +367,23 @@ def filter_and_rank(jobs: List[Job], skills: Optional[List[str]] = None,
                     remote_only: bool = False, source: Optional[str] = None,
                     min_score: Optional[int] = None) -> List[Dict[str, Any]]:
     out = []
+    seen = set()
+    has_skills = bool(skills)
     for j in jobs:
         if source and j.source != source:
             continue
+        # Dedupe: same title + company + source is one job (boards repost).
+        key = (j.title.lower(), j.company.lower(), j.source)
+        if key in seen:
+            continue
+        seen.add(key)
         d = j.to_dict()
-        d["fit_score"] = _match_score(j, skills or [])
-        if min_score is not None and d["fit_score"] < min_score:
+        # fit_score only exists when skills are supplied (matches the docs).
+        # Without skills there is no notion of fit, so we emit null, not a fake 50.
+        d["fit_score"] = _match_score(j, skills) if has_skills else None
+        if min_score is not None and (d["fit_score"] is None or d["fit_score"] < min_score):
             continue
         out.append(d)
-    # best fit first, then newest
-    out.sort(key=lambda d: (d["fit_score"], d["published"]), reverse=True)
+    # best fit first (jobs without skills sort by fit=0), then newest
+    out.sort(key=lambda d: ((d["fit_score"] or 0), d["published"]), reverse=True)
     return out
