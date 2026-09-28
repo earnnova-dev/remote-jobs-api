@@ -275,6 +275,9 @@ def auth_page(title: str, error: str = "", ok: str = "") -> str:
       <div style="margin-top:16px"><button class="btn" type="submit">Sign in</button></div>
     </form>
     <p style="margin-top:16px;color:var(--muted);font-size:14px">
+      <a href="/forgot">Forgot password?</a>
+    </p>
+    <p style="margin-top:10px;color:var(--muted);font-size:14px">
       New here? <a href="/register">Create an account</a>.
     </p>"""
     body = f"""
@@ -310,6 +313,51 @@ def register_page(title: str = "Create your account", error: str = "", ok: str =
   {form}
 </div>"""
     return _shell("Sign up", body)
+
+
+def forgot_page(error: str = "", ok: str = "") -> str:
+    form = """
+    <form method="post" action="/forgot">
+      <label>Email</label>
+      <input type="email" name="email" required autocomplete="email">
+      <div style="margin-top:16px"><button class="btn" type="submit">Email me a reset link</button></div>
+    </form>
+    <p style="margin-top:16px;color:var(--muted);font-size:14px">
+      <a href="/login">← Back to sign in</a>
+    </p>"""
+    body = f"""
+<div class="wrap" style="max-width:440px;padding-top:60px">
+  <h1 style="margin:0 0 6px">Reset your password</h1>
+  <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Enter the email you signed up with. We'll send a link to set a new password.</p>
+  {f'<p class="error">{error}</p>' if error else ''}
+  {f'<p class="success" style="word-break:break-all">{ok}</p>' if ok else ''}
+  {form}
+</div>"""
+    return _shell("Reset password", body)
+
+
+def reset_page(token: str, error: str = "", ok: str = "") -> str:
+    form = f"""
+    <form method="post" action="/reset">
+      <input type="hidden" name="token" value="{token}">
+      <label>New password (min 8 chars)</label>
+      <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      <label>Confirm new password</label>
+      <input type="password" name="confirm" required minlength="8" autocomplete="new-password">
+      <div style="margin-top:16px"><button class="btn" type="submit">Set new password</button></div>
+    </form>
+    <p style="margin-top:16px;color:var(--muted);font-size:14px">
+      <a href="/forgot">← Request a new link</a>
+    </p>"""
+    body = f"""
+<div class="wrap" style="max-width:440px;padding-top:60px">
+  <h1 style="margin:0 0 6px">Choose a new password</h1>
+  <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Pick a strong password you don't use elsewhere.</p>
+  {f'<p class="error">{error}</p>' if error else ''}
+  {f'<p class="success">{ok}</p>' if ok else ''}
+  {form}
+</div>"""
+    return _shell("New password", body)
 
 
 def dashboard(user: dict, prices: Optional[dict] = None) -> str:

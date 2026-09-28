@@ -294,6 +294,43 @@ class Handler(BaseHTTPRequestHandler):
         _accounts.delete_session(tok)
         return self._redirect("/", set_cookie="rja_session=; HttpOnly; Path=/; Max-Age=0")
 
+    def _handle_forgot_page(self, error="", ok=""):
+        return self._html(200, web.forgot_page(error=error, ok=ok))
+
+    def _handle_forgot(self):
+        data = self._form()
+        email = (data.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            return self._handle_forgot_page(error="Enter a valid email address.")
+        token = _accounts.create_reset_token(email)
+        # Deliberately do NOT reveal whether the account exists: same message either way.
+        if token:
+            # Dev/provisioning: no SMTP wired yet, so surface the link directly.
+            link = f"{_BASE_URL}/reset?token={token}"
+            return self._handle_forgot_page(ok=f"Password reset link (dev): {link}")
+        return self._handle_forgot_page(ok="If that address is registered, a reset link has been sent. Check your inbox (or try again in a minute).")
+
+    def _handle_reset_page(self, token: str, error="", ok=""):
+        email = _accounts.validate_reset_token(token)
+        if not email:
+            return self._html(200, web.reset_page(token, error="This reset link is invalid or has expired. Request a new one."))
+        return self._html(200, web.reset_page(token, error=error, ok=ok))
+
+    def _handle_reset(self):
+        data = self._form()
+        token = data.get("token") or ""
+        password = data.get("password") or ""
+        confirm = data.get("confirm") or ""
+        if password != confirm:
+            return self._handle_reset_page(token, error="Passwords do not match.")
+        try:
+            email = _accounts.consume_reset_token(token, password)
+        except ValueError as e:
+            return self._handle_reset_page(token, error=str(e))
+        if not email:
+            return self._handle_reset_page(token, error="This reset link is invalid, already used, or has expired.")
+        return self._handle_login_page(ok="Password updated. Sign in with your new password.")
+
     def _handle_dashboard(self):
         email = self._session_email()
         if not email:
@@ -535,6 +572,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_register_page()
         if path == "/login":
             return self._handle_login_page()
+        if path == "/forgot":
+            return self._handle_forgot_page()
+        if path == "/reset":
+            token = (q.get("token") or [""])[0]
+            return self._handle_reset_page(token)
         if path == "/dashboard":
             return self._handle_dashboard()
         if path.startswith("/checkout/"):
@@ -556,6 +598,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_login()
         if path == "/logout":
             return self._handle_logout()
+        if path == "/forgot":
+            return self._handle_forgot()
+        if path == "/reset":
+            return self._handle_reset()
         if path.startswith("/checkout/"):
             return self._handle_checkout(path.split("/", 2)[2])
         if path == "/billing/cancel":

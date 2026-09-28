@@ -13,6 +13,7 @@ import json
 import os
 import re
 import socket
+import tempfile
 import unittest
 import urllib.error
 import urllib.parse
@@ -21,6 +22,58 @@ import urllib.request
 B = "http://127.0.0.1:8477"
 ACCOUNTS = os.environ.get("RJA_ACCOUNTS_PATH", "/tmp/rjaa.json")
 KEYS = os.environ.get("RJA_KEYS_PATH", "/tmp/rjakeys.json")
+
+
+class ResetTokenUnit(unittest.TestCase):
+    """Unit-level test of the password-reset state machine (no server needed)."""
+
+    def setUp(self):
+        fd, path = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
+        os.remove(path)  # UserStore starts fresh if the file doesn't exist
+        from remote_jobs_api.accounts import UserStore
+        self.store = UserStore(path)
+        self.path = path
+
+    def tearDown(self):
+        if os.path.exists(self.path):
+            os.remove(self.path)
+
+    def test_full_reset_flow(self):
+        self.store.register("reset@example.com", "oldpassword1")
+        # Issue a token.
+        tok = self.store.create_reset_token("reset@example.com")
+        self.assertIsNotNone(tok)
+        # Validate.
+        self.assertEqual(self.store.validate_reset_token(tok), "reset@example.com")
+        # Consume with a new password.
+        self.assertEqual(self.store.consume_reset_token(tok, "newpassword9"), "reset@example.com")
+        # Old password no longer works.
+        self.assertIsNone(self.store.verify("reset@example.com", "oldpassword1"))
+        # New password works.
+        self.assertIsNotNone(self.store.verify("reset@example.com", "newpassword9"))
+        # Token is single-use.
+        self.assertIsNone(self.store.validate_reset_token(tok))
+
+    def test_token_invalid_for_unknown_email(self):
+        self.assertIsNone(self.store.create_reset_token("nobody@example.com"))
+
+    def test_rate_limit(self):
+        self.store.register("rl@example.com", "oldpassword1")
+        # 3 fresh requests are allowed, the 4th is rate-limited.
+        self.assertTrue(self.store.create_reset_token("rl@example.com"))
+        self.assertTrue(self.store.create_reset_token("rl@example.com"))
+        self.assertTrue(self.store.create_reset_token("rl@example.com"))
+        self.assertIsNone(self.store.create_reset_token("rl@example.com"))
+
+    def test_sessions_revoked_on_reset(self):
+        self.store.register("rev@example.com", "oldpassword1")
+        s1 = self.store.create_session("rev@example.com")
+        self.assertIsNotNone(self.store.session_email(s1))
+        tok = self.store.create_reset_token("rev@example.com")
+        self.store.consume_reset_token(tok, "newpassword9")
+        # The prior session must be revoked.
+        self.assertIsNone(self.store.session_email(s1))
 
 
 def _server_alive() -> bool:

@@ -24,6 +24,9 @@ File layout (accounts.json):
   },
   "sessions": {
     "hex_token": {"email": "user@example.com", "created": 123, "expires": 123}
+  },
+  "resets": {
+    "sha256(token)": {"email": "user@example.com", "expires": 123, "used": false, "attempts": 0}
   }
 }
 """
@@ -39,6 +42,9 @@ from typing import Dict, Any, Optional
 
 PBKDF2_ITERATIONS = 100_000
 SESSION_TTL = 60 * 60 * 24 * 30  # 30 days
+RESET_TTL = 60 * 30  # 30 minutes
+RESET_MAX_ATTEMPTS = 5  # max password set attempts per token
+RESET_MAX_REQUESTS_PER_HOUR = 3  # max reset requests per email per hour
 
 
 def _now() -> int:
@@ -64,7 +70,7 @@ class UserStore:
     def __init__(self, path: str):
         self.path = path
         self._lock = threading.RLock()
-        self._data: Dict[str, Any] = {"v": 1, "users": {}, "sessions": {}}
+        self._data: Dict[str, Any] = {"v": 1, "users": {}, "sessions": {}, "resets": {}}
         self._load()
 
     # ---------- persistence ----------
@@ -76,6 +82,7 @@ class UserStore:
                 loaded = json.load(f)
             if isinstance(loaded, dict) and isinstance(loaded.get("users"), dict):
                 loaded.setdefault("sessions", {})
+                loaded.setdefault("resets", {})
                 self._data = loaded
         except (json.JSONDecodeError, OSError):
             print("[accounts] could not parse accounts file; starting fresh", flush=True)
@@ -179,6 +186,128 @@ class UserStore:
     def list_emails(self) -> list:
         with self._lock:
             return list(self._data["users"].keys())
+
+    # ---------- password reset ----------
+    def set_password(self, email: str, password: str) -> None:
+        """Directly set a password (used by the reset flow and provisioning)."""
+        email = email.strip().lower()
+        if len(password) < 8:
+            raise ValueError("password must be at least 8 characters")
+        with self._lock:
+            rec = self._data["users"].get(email)
+            if not rec:
+                raise ValueError("user not found")
+            rec["salt"] = secrets.token_hex(16)
+            rec["pass_hash"] = hash_password(password, rec["salt"])
+            self._save_locked()
+
+    def revoke_sessions_for(self, email: str) -> int:
+        """Revoke all active sessions for a user (used after password change)."""
+        email = email.strip().lower()
+        now = _now()
+        with self._lock:
+            removed = 0
+            for tok in list(self._data["sessions"].keys()):
+                s = self._data["sessions"][tok]
+                if s.get("email") == email and s.get("expires", 0) > now:
+                    del self._data["sessions"][tok]
+                    removed += 1
+            self._save_locked()
+            return removed
+
+    def _reset_hash(self, token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    def _gc_resets_locked(self) -> None:
+        now = _now()
+        for h in list(self._data["resets"].keys()):
+            r = self._data["resets"][h]
+            if r.get("expires", 0) < now:
+                del self._data["resets"][h]
+
+    def create_reset_token(self, email: str) -> Optional[str]:
+        """Return a one-time reset token, or None if the user doesn't exist / is rate-limited.
+
+        The token is only stored as a SHA-256 hash. Returns the raw token so the
+        caller can deliver it (via email, or locally in dev mode).
+        """
+        email = email.strip().lower()
+        with self._lock:
+            if email not in self._data["users"]:
+                return None
+            # Rate limit: max N fresh requests per email per hour.
+            now = _now()
+            fresh = 0
+            for h, r in self._data["resets"].items():
+                if r.get("email") == email and r.get("created", 0) > now - 3600:
+                    fresh += 1
+            if fresh >= RESET_MAX_REQUESTS_PER_HOUR:
+                return None
+            # Invalidate any prior (unexpired) tokens for this email.
+            for h, r in list(self._data["resets"].items()):
+                if r.get("email") == email and not r.get("used") and r.get("expires", 0) > now:
+                    r["used"] = True
+            token = secrets.token_urlsafe(32)
+            self._data["resets"][self._reset_hash(token)] = {
+                "email": email,
+                "created": now,
+                "expires": now + RESET_TTL,
+                "used": False,
+                "attempts": 0,
+            }
+            self._save_locked()
+            return token
+
+    def validate_reset_token(self, token: str) -> Optional[str]:
+        """Return the email the token belongs to if valid, else None."""
+        if not token:
+            return None
+        with self._lock:
+            self._gc_resets_locked()
+            r = self._data["resets"].get(self._reset_hash(token))
+            if not r:
+                return None
+            if r.get("used") or r.get("expires", 0) < _now():
+                return None
+            return r.get("email")
+
+    def consume_reset_token(self, token: str, new_password: str) -> Optional[str]:
+        """Validate the token, set the password, mark used, revoke sessions.
+
+        Returns the email on success, or None if the token is invalid/used/expired
+        or attempts are exhausted. Raises ValueError on a bad password.
+        """
+        if not token:
+            return None
+        with self._lock:
+            self._gc_resets_locked()
+            key = self._reset_hash(token)
+            r = self._data["resets"].get(key)
+            if not r or r.get("used"):
+                return None
+            if r.get("expires", 0) < _now():
+                return None
+            if r.get("attempts", 0) >= RESET_MAX_ATTEMPTS:
+                return None
+            email = r["email"]
+            # Set the password (reuses the lock, which is reentrant).
+            rec = self._data["users"].get(email)
+            if not rec:
+                return None
+            if len(new_password) < 8:
+                raise ValueError("password must be at least 8 characters")
+            rec["salt"] = secrets.token_hex(16)
+            rec["pass_hash"] = hash_password(new_password, rec["salt"])
+            # Mark token used + revoke all sessions for the user.
+            r["used"] = True
+            r["attempts"] += 1
+            now = _now()
+            for tok in list(self._data["sessions"].keys()):
+                if self._data["sessions"][tok].get("email") == email and self._data["sessions"][tok].get("expires", 0) > now:
+                    del self._data["sessions"][tok]
+            self._save_locked()
+            return email
+
 
     # ---------- sessions ----------
     def create_session(self, email: str) -> str:
