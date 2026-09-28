@@ -179,6 +179,7 @@ python3 -m remote_jobs_api.server          # listens on :8321</code></pre>
   <pre><code>docker build -t remote-jobs-api .
 docker run -p 8321:8321 remote-jobs-api</code></pre>
   <p>Or one command with the included <code>docker-compose.yml</code> (keys persist in a volume): <code>export RJA_ADMIN_TOKEN=*** &amp;&amp; docker compose up -d</code>.</p>
+  <p>Want to know the moment a feed breaks silently? <a href="https://github.com/earnnova-dev/jobfeed-watchdog">jobfeed-watchdog</a> is a drop-in GitHub Action that fingerprints a feed every 6 hours and fails the build on count collapse, schema change, or outage. Or track new matches with <a href="https://github.com/earnnova-dev/gigwatch">GigWatch</a>.</p>
   <p><strong>Env vars:</strong> <code>PORT</code> (default <code>8321</code>) · <code>RJA_CACHE_TTL</code> (default <code>300</code> s) — how long to cache upstream fetches.</p>
   <p style="margin-top:18px"><a class="cta" href="https://github.com/earnnova-dev/remote-jobs-api">View on GitHub →</a>
   &nbsp;&nbsp;<a class="cta" style="background:var(--panel);color:var(--text)" href="/free-remote-job-apis.html">Free remote-job API list</a>
