@@ -12,7 +12,7 @@ image:
   # Built automatically by GitHub Actions -> ghcr.io/earnnova-dev/remote-jobs-api
   repository: ghcr.io/earnnova-dev/remote-jobs-api
   # Immutable release tag. Do not use "latest" in production.
-  tag: "1.2.2"
+  tag: "1.2.3"
   digest: ""
   pullPolicy: IfNotPresent
 
@@ -92,11 +92,18 @@ extraEnv:
 #       value: "debug"
 env: []
 
-# envFrom entries (secretRef / configMapRef) applied to the container.
-# Example:
+# envFrom entries (secretRef / configMapRef) applied to the container env.
+#
+# Stripe billing: create a secret once (do NOT commit the values):
+#   kubectl -n rja create secret generic rja-stripe \
+#     --from-literal=RJA_STRIPE_SECRET_KEY='***' \
+#     --from-literal=RJA_STRIPE_WEBHOOK_SECRET='***' \
+#     --from-literal=RJA_STRIPE_PRICE_PRO='price_...' \
+#     --from-literal=RJA_STRIPE_PRICE_TEAM='price_...'
+# then uncomment this block:
 #   envFrom:
 #     - secretRef:
-#         name: rja-extra
+#         name: rja-stripe
 envFrom: []
 
 nodeSelector: {}
