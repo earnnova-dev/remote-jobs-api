@@ -94,31 +94,55 @@ _BASE_URL = os.environ.get("RJA_BASE_URL", "https://remote-jobs-api.tten.no").rs
 _STRIPE_KEY = os.environ.get("RJA_STRIPE_SECRET_KEY", "")
 _STRIPE_WEBHOOK_SECRET = os.environ.get("RJA_STRIPE_WEBHOOK_SECRET", "")
 _STRIPE = StripeClient(_STRIPE_KEY) if _STRIPE_KEY else None
-# Products + prices are created/look-up automatically from the Stripe account
-# (products tagged rja_plan=pro|team). Nothing about pricing is hardcoded in
-# env or secrets: the app owns its own catalog. ensure_products() is
-# idempotent — it reuses existing prices and only creates ones that are
-# missing, so it works in both test and live mode under the current key.
+# Products + prices are resolved lazily from the Stripe account (products
+# tagged rja_plan=pro|team). Nothing about pricing is hardcoded in env or
+# secrets: the app owns its own catalog. Resolution happens on first use
+# (and is warmed up in a background thread) so the HTTP server starts
+# listening immediately — even if egress to Stripe is slow. This matters in
+# Kubernetes: an import-time block of Stripe calls can push startup past the
+# readiness probe's initialDelay and trigger a crashloop / "Degraded".
 _STRIPE_PLANS = [
     {"plan": "pro", "name": "Remote Jobs API — Pro",
      "description": "10,000 API calls / month", "amount_cents": 1900, "currency": "usd"},
     {"plan": "team", "name": "Remote Jobs API — Team",
      "description": "50,000 API calls / month", "amount_cents": 4900, "currency": "usd"},
 ]
+import threading as _threading
+_STRIPE_RESOLVE_LOCK = _threading.Lock()
+_STRIPE_RESOLVED = False
 _PRICE_PRO = ""
 _PRICE_TEAM = ""
-_STRIPE_CONFIGURED = False
 _PRICE_TO_PLAN: dict = {}
-if _STRIPE:
-    try:
-        _resolved = _STRIPE.ensure_products(_STRIPE_PLANS)
-        _PRICE_PRO = _resolved.get("pro", "")
-        _PRICE_TEAM = _resolved.get("team", "")
-    except StripeError as _e:
-        print(f"[stripe] ensure_products failed: {_e}", flush=True)
-        _resolved = {}
-    _PRICE_TO_PLAN = {pid: plan for plan, pid in _resolved.items() if pid}
-    _STRIPE_CONFIGURED = bool(_PRICE_PRO and _PRICE_TEAM)
+
+
+def _resolve_stripe_prices():
+    """Resolve (creating if missing) pro/team price ids from Stripe.
+
+    Idempotent and cached: runs at most once successfully; on failure it
+    leaves the flag unset so the next request retries.
+    """
+    global _STRIPE_RESOLVED, _PRICE_PRO, _PRICE_TEAM, _PRICE_TO_PLAN
+    if _STRIPE_RESOLVED:
+        return
+    if not _STRIPE:
+        return
+    with _STRIPE_RESOLVE_LOCK:
+        if _STRIPE_RESOLVED:
+            return
+        try:
+            _resolved = _STRIPE.ensure_products(_STRIPE_PLANS)
+            _PRICE_PRO = _resolved.get("pro", "")
+            _PRICE_TEAM = _resolved.get("team", "")
+            _PRICE_TO_PLAN = {pid: plan for plan, pid in _resolved.items() if pid}
+            _STRIPE_RESOLVED = True
+            print(f"[stripe] prices resolved: pro={'ok' if _PRICE_PRO else 'MISSING'}, "
+                  f"team={'ok' if _PRICE_TEAM else 'MISSING'}", flush=True)
+        except StripeError as _e:
+            print(f"[stripe] ensure_products failed (will retry on next request): {_e}", flush=True)
+
+
+def stripe_configured() -> bool:
+    return bool(_STRIPE and _PRICE_PRO and _PRICE_TEAM)
 
 # Transactional email (password reset). The reset link is NEVER shown in the
 # UI; it is only delivered by email, or — if no SMTP is configured — logged to
@@ -297,7 +321,7 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------- storefront ----------
     def _handle_landing(self):
-        return self._html(200, web.landing(stripe_configured=_STRIPE_CONFIGURED,
+        return self._html(200, web.landing(stripe_configured=stripe_configured(),
                                            prices=_prices(), sources=SOURCES))
 
     def _handle_register_page(self, error="", ok=""):
@@ -428,7 +452,8 @@ class Handler(BaseHTTPRequestHandler):
     def _handle_checkout(self, plan_id):
         if plan_id not in ("pro", "team"):
             return self._json(404, {"error": "unknown plan"})
-        if not _STRIPE_CONFIGURED:
+        _resolve_stripe_prices()
+        if not stripe_configured():
             return self._html(400, web.checkout_page(plan_id) +
                               '<div class="wrap"><p class="error">Stripe is not configured yet.</p></div>')
         data = self._form()
@@ -462,7 +487,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._redirect("/login")
         user = _accounts.get(email) or {}
         customer = user.get("stripe_customer", "")
-        if not _STRIPE_CONFIGURED or not customer:
+        _resolve_stripe_prices()
+        if not stripe_configured() or not customer:
             return self._json(400, {"error": "no stripe customer on this account"})
         try:
             url = _STRIPE.create_portal_session(customer=customer, return_url=f"{_BASE_URL}/dashboard")
@@ -476,7 +502,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._redirect("/login")
         user = _accounts.get(email) or {}
         sub = user.get("stripe_sub", "")
-        if _STRIPE_CONFIGURED and sub:
+        if stripe_configured() and sub:
             try:
                 _STRIPE.cancel_at_period_end(sub)
             except StripeError as e:
@@ -710,10 +736,17 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     port = int(os.environ.get("PORT", "8321"))
     srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+    # Warm up Stripe in a background thread so the HTTP server (and the
+    # readiness/liveness probes) come up immediately even if egress to Stripe
+    # is slow. Checkout/portal resolve on demand if the warm-up is still
+    # running.
+    if _STRIPE:
+        _threading.Thread(target=_resolve_stripe_prices, name="stripe-warmup",
+                          daemon=True).start()
     print(f"Remote-Jobs Data API + Storefront listening on :{port}", flush=True)
     print(f"  base url:     {_BASE_URL}", flush=True)
     print(f"  admin token:  {'set' if _ADMIN_TOKEN else 'NOT SET'}", flush=True)
-    print(f"  stripe:       {'configured' if _STRIPE_CONFIGURED else 'NOT configured'}", flush=True)
+    print(f"  stripe:       {'key set (resolving prices in background)' if _STRIPE else 'NOT configured'}", flush=True)
     print(f"  keys file:    {_KEYS_PATH}", flush=True)
     print(f"  accounts:     {_ACCOUNTS_PATH}", flush=True)
     srv.serve_forever()
