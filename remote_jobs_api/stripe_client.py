@@ -66,26 +66,49 @@ class StripeClient:
         except StripeError:
             return None
 
-    def resolve_prices(self) -> dict:
-        """Map plan name -> price id, looked up live from Stripe.
+    def ensure_products(self, plans: list[dict]) -> dict:
+        """Create products + prices in Stripe if they don't exist.
 
-        Prices are matched by the 'rja_plan' metadata tag on their product
-        (pro / team). This removes the need to hardcode price ids in env: the
-        app always uses whatever prices actually exist in the Stripe account,
-        in whichever mode (test or live) the secret key is. Returns
-        {'pro': price_id, 'team': price_id} with missing plans omitted.
+        Each plan: {"plan": "pro", "name": "Remote Jobs API — Pro",
+                    "amount_cents": 1900, "currency": "usd"}.
+
+        Idempotent: looks up existing by product metadata rja_plan=<plan>.
+        Returns {plan: price_id}.
         """
-        out: dict = {}
-        data = self._request("GET", "/prices",
-                             query={"active": "true", "limit": "100"})
-        for p in data.get("data", []):
-            if p.get("recurring") is None:
-                continue
-            prod = self._request("GET", f"/products/{p['product']}")
-            plan = (prod.get("metadata") or {}).get("rja_plan", "")
-            if plan in ("pro", "team") and plan not in out:
-                out[plan] = p["id"]
-        return out
+        result: dict = {}
+        for spec in plans:
+            plan = spec["plan"]
+            # Check if we already have a price for this plan
+            data = self._request("GET", "/prices",
+                                 query={"active": "true", "limit": "100"})
+            for p in data.get("data", []):
+                if p.get("recurring") is None:
+                    continue
+                prod = self._request("GET", f"/products/{p['product']}")
+                if (prod.get("metadata") or {}).get("rja_plan") == plan:
+                    result[plan] = p["id"]
+                    break
+            else:
+                # Create product
+                prod_body = {
+                    "name": spec.get("name", f"Remote Jobs API — {plan.title()}"),
+                    "metadata[rja_plan]": plan,
+                    "description": spec.get("description", ""),
+                }
+                prod_data = self._request("POST", "/products", prod_body)
+                prod_id = prod_data["id"]
+                # Create price
+                price_body = {
+                    "product": prod_id,
+                    "unit_amount": str(spec["amount_cents"]),
+                    "currency": spec.get("currency", "usd"),
+                    "recurring[interval]": "month",
+                }
+                price_data = self._request("POST", "/prices", price_body)
+                result[plan] = price_data["id"]
+                print(f"[stripe] created product {prod_id} + price {price_data['id']} for plan={plan}",
+                      flush=True)
+        return result
 
     # ---------- customers ----------
     def create_customer(self, email: str) -> str:

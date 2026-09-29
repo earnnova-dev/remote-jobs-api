@@ -94,20 +94,28 @@ _BASE_URL = os.environ.get("RJA_BASE_URL", "https://remote-jobs-api.tten.no").rs
 _STRIPE_KEY = os.environ.get("RJA_STRIPE_SECRET_KEY", "")
 _STRIPE_WEBHOOK_SECRET = os.environ.get("RJA_STRIPE_WEBHOOK_SECRET", "")
 _STRIPE = StripeClient(_STRIPE_KEY) if _STRIPE_KEY else None
-# Price IDs are NOT taken from env. They are resolved live from the Stripe
-# account (products tagged rja_plan=pro|team) so the app always uses the
-# prices that actually exist in the current key's mode — no test/live
-# mismatch possible, nothing to hardcode in .env or secrets.
+# Products + prices are created/look-up automatically from the Stripe account
+# (products tagged rja_plan=pro|team). Nothing about pricing is hardcoded in
+# env or secrets: the app owns its own catalog. ensure_products() is
+# idempotent — it reuses existing prices and only creates ones that are
+# missing, so it works in both test and live mode under the current key.
+_STRIPE_PLANS = [
+    {"plan": "pro", "name": "Remote Jobs API — Pro",
+     "description": "10,000 API calls / month", "amount_cents": 1900, "currency": "usd"},
+    {"plan": "team", "name": "Remote Jobs API — Team",
+     "description": "50,000 API calls / month", "amount_cents": 4900, "currency": "usd"},
+]
 _PRICE_PRO = ""
 _PRICE_TEAM = ""
-_STRIPE_CONFIGURED = bool(_STRIPE_KEY)
+_STRIPE_CONFIGURED = False
 _PRICE_TO_PLAN: dict = {}
 if _STRIPE:
     try:
-        _resolved = _STRIPE.resolve_prices()
+        _resolved = _STRIPE.ensure_products(_STRIPE_PLANS)
         _PRICE_PRO = _resolved.get("pro", "")
         _PRICE_TEAM = _resolved.get("team", "")
-    except StripeError:
+    except StripeError as _e:
+        print(f"[stripe] ensure_products failed: {_e}", flush=True)
         _resolved = {}
     _PRICE_TO_PLAN = {pid: plan for plan, pid in _resolved.items() if pid}
     _STRIPE_CONFIGURED = bool(_PRICE_PRO and _PRICE_TEAM)
