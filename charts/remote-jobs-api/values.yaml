@@ -118,7 +118,14 @@ env: []
 #         name: rja-stripe
 #     - secretRef:
 #         name: rja-smtp
-envFrom: []
+#
+# SealedSecret (published via sealed-secrets, not committed):
+#   envFrom:
+#     - secretRef:
+#         name: stripe-secrets
+envFrom:
+  - secretRef:
+      name: stripe-secrets
 
 nodeSelector: {}
 tolerations: []

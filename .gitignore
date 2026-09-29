@@ -16,3 +16,5 @@ charts/**/*.tgz
 data/
 keys.json
 *.log
+build/
+_snapshot_raw.json

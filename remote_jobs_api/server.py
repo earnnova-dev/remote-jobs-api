@@ -413,7 +413,9 @@ class Handler(BaseHTTPRequestHandler):
         data = self._form()
         email = (data.get("email") or "").strip().lower()
         if not email:
-            return self._handle_checkout_page(plan_id)
+            email = self._session_email()
+        if not email:
+            return self._redirect("/register")
         if not _accounts.exists(email):
             return self._redirect("/register")
         customer = _accounts.get(email).get("stripe_customer", "")
