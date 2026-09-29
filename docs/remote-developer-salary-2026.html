@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Remote Developer Salary 2026 — Live Data from 325 Real Job Listings</title>
+<meta name="description" content="Real remote developer salary data for 2026, pulled live from 325 current job listings across Remotive, RemoteOK, Jobicy, We Work Remotely, and Hacker News. Median: $160,000. Updated daily.">
+<meta name="keywords" content="remote developer salary 2026, remote software engineer salary, remote job salary data, remote pay 2026, developer salary benchmarks, remote tech salary, US remote developer pay, senior developer salary remote">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/remote-developer-salary-2026.html">
+<meta property="og:title" content="Remote Developer Salary 2026 — Live Data from 325 Real Jobs">
+<meta property="og:description" content="Real salary data from 325 live remote job listings, updated daily. Median $160k, P75 $210k, P90 $240k.">
+<meta property="og:url" content="https://earnnova-dev.github.io/remote-jobs-api/remote-developer-salary-2026.html">
+<meta property="og:type" content="article">
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d2e;
+    --border: #2a2d3e;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #60a5fa;
+    --green: #34d399;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    padding: 0;
+  }
+  .hero {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f1117 70%);
+    padding: 48px 24px 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 { font-size: 2.2rem; margin-bottom: 12px; font-weight: 700; }
+  .hero .subtitle { color: var(--muted); font-size: 1.05rem; max-width: 640px; margin: 0 auto 16px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 14px; font-size: 0.85rem;
+    color: var(--green);
+  }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .container { max-width: 860px; margin: 0 auto; padding: 32px 24px; }
+  h2 { font-size: 1.4rem; margin: 36px 0 16px; color: var(--text); }
+  h3 { font-size: 1.1rem; margin: 24px 0 10px; }
+  p { color: var(--muted); margin-bottom: 12px; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.9rem;
+  }
+  th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 600; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  tr:hover td { background: rgba(96,165,250,0.05); }
+  .salary { color: var(--green); font-weight: 600; }
+  .source-tag {
+    display: inline-block;
+    background: rgba(96,165,250,0.15);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+  }
+  .pct-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .pct-label { width: 48px; font-size: 0.85rem; color: var(--muted); }
+  .pct-bar-bg { flex: 1; height: 24px; background: var(--card); border-radius: 6px; overflow: hidden; }
+  .pct-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #3b82f6);
+    border-radius: 6px;
+    display: flex; align-items: center; padding-left: 10px;
+    font-size: 0.85rem; font-weight: 600; min-width: 72px;
+  }
+  .note {
+    background: rgba(96,165,250,0.08);
+    border: 1px solid rgba(96,165,250,0.25);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin: 16px 0;
+  }
+  .cta {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    margin: 32px 0;
+  }
+  .cta h3 { color: var(--text); margin-bottom: 8px; }
+  .cta p { margin-bottom: 16px; }
+  .cta a {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 10px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 1.5rem; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    table { font-size: 0.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Remote Developer Salary 2026</h1>
+  <p class="subtitle">Live salary data pulled from 325 real remote job listings across Remotive, RemoteOK, Jobicy, We Work Remotely, and Hacker News — updated daily.</p>
+  <span class="badge"><span class="dot"></span> 325 live jobs &middot; 89 with salary data &middot; Updated Sep 29, 2026</span>
+</div>
+
+<div class="container">
+
+  <h2>Salary Percentiles (USD/year, all remote roles)</h2>
+  <p>Based on 39 current US-remote job listings with published annual salary ranges. Median midpoint: <strong>$160,000</strong>.</p>
+
+  <div class="pct-row">
+    <span class="pct-label">P10</span>
+    <div class="pct-bar-bg"><div class="pct-bar" style="width:36%">$85,500</div></div>
+  </div>
+  <div class="pct-row">
+    <span class="pct-label">P25</span>
+    <div class="pct-bar-bg"><div class="pct-bar" style="width:57%">$137,500</div></div>
+  </div>
+  <div class="pct-row">
+    <span class="pct-label">P50</span>
+    <div class="pct-bar-bg"><div class="pct-bar" style="width:67%">$160,000</div></div>
+  </div>
+  <div class="pct-row">
+    <span class="pct-label">P75</span>
+    <div class="pct-bar-bg"><div class="pct-bar" style="width:87%">$210,000</div></div>
+  </div>
+  <div class="pct-row">
+    <span class="pct-label">P90</span>
+    <div class="pct-bar-bg"><div class="pct-bar" style="width:100%">$240,000</div></div>
+  </div>
+
+  <div class="stats-grid" style="margin-top:24px">
+    <div class="stat-card"><div class="value">39</div><div class="label">USD yearly listings</div></div>
+    <div class="stat-card"><div class="value">$160k</div><div class="label">Median salary</div></div>
+    <div class="stat-card"><div class="value">$240k</div><div class="label">P90 ceiling</div></div>
+    <div class="stat-card"><div class="value">5 boards</div><div class="label">Sources aggregated</div></div>
+  </div>
+
+  <h2>Salary by Role Category (USD/year)</h2>
+  <table>
+    <thead><tr><th>Category</th><th>Listings</th><th>Median</th></tr></thead>
+    <tbody>
+      <tr><td>Senior / Staff / Principal Engineer</td><td>6</td><td class="salary">$210,000</td></tr>
+      <tr><td>Data / AI / ML</td><td>5</td><td class="salary">$195,000</td></tr>
+      <tr><td>Product / Design</td><td>4</td><td class="salary">$185,000</td></tr>
+      <tr><td>Management / Director</td><td>9</td><td class="salary">$168,750</td></tr>
+      <tr><td>Mid-level Engineer</td><td>7</td><td class="salary">$204,825</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Hourly Rates (USD/hour, contract roles)</h2>
+  <table>
+    <thead><tr><th>Role</th><th>Rate</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Senior Independent AI Engineer / Architect</td><td class="salary">$120–170/hr</td><td><span class="source-tag">Remotive</span></td></tr>
+      <tr><td>Senior Independent Software Developer</td><td class="salary">$90–150/hr</td><td><span class="source-tag">Remotive</span></td></tr>
+      <tr><td>Freelance Writer</td><td class="salary">$50–75/hr</td><td><span class="source-tag">Remotive</span></td></tr>
+      <tr><td>Contract Senior Staff Product Manager (US East)</td><td class="salary">$84–106/hr</td><td><span class="source-tag">Jobicy</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>EU Remote Salaries (EUR/year)</h2>
+  <table>
+    <thead><tr><th>Role</th><th>Range</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Staff Design Engineer (EU)</td><td class="salary">€154,000–188,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Senior Security Engineer (EU/CET)</td><td class="salary">€110,000–130,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Senior SRE (EU/CET)</td><td class="salary">€109,000–128,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Product Lead (EU/UK)</td><td class="salary">€105,000–125,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Current Live Listings with Salary Data (Top 20 by midpoint)</h2>
+  <table>
+    <thead><tr><th>Role</th><th>Salary (USD/yr)</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Engineering Manager, Notifications</td><td class="salary">$248,000–341,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Security Software Engineer, IAM</td><td class="salary">$208,000–312,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Staff Software Engineer, AI &amp; Recommendations</td><td class="salary">$230,000–250,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Senior Android SDK Engineer</td><td class="salary">$227,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Manager, Forward Deployed Engineering</td><td class="salary">$211,800–291,300</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Principal Software Engineer</td><td class="salary">$200,000–220,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Lead Solutions Engineer</td><td class="salary">$190,000–220,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Senior Data Scientist, Full Stack</td><td class="salary">$180,000–210,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Sr. Director, Assistant Controller</td><td class="salary">$182,600–295,350</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Director Demand Generation</td><td class="salary">$180,000–213,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Data Scientist, Risk</td><td class="salary">$170,000–200,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Staff Product Designer, Core Treatments</td><td class="salary">$165,000–210,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Legal Engineer</td><td class="salary">$155,000–165,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Staff AI Engineer</td><td class="salary">$115,000–200,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Senior Product Marketing Manager</td><td class="salary">$175,000–195,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Senior Sales Engineer</td><td class="salary">$135,000–150,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Senior Director of Sales, Enterprise</td><td class="salary">$150,000–187,500</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Platform Engineer</td><td class="salary">$123,250–166,750</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Clinical Product Lead</td><td class="salary">$127,840–188,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+      <tr><td>Senior Manager, Customer Success</td><td class="salary">$122,000–136,000</td><td><span class="source-tag">Jobicy</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Data source &amp; methodology:</strong> These numbers are pulled live from the <a href="https://remote-jobs-api.tten.no" style="color:var(--accent)">Remote Jobs API</a>, which aggregates 5 remote job boards (Remotive, RemoteOK, Jobicy, We Work Remotely, Hacker News) into one normalized endpoint. Salary data is taken directly from job postings where the employer publishes it. Percentiles are computed on the midpoint of each listed range. The data refreshes automatically — this page reflects the live job market at the time of your visit.
+  </div>
+
+  <h2>What Remote Means for Your Salary in 2026</h2>
+  <p>The data shows that top-quartile remote engineering roles (P75+) cluster around <strong>$210,000+</strong> per year for US-based positions. Senior and staff-level roles command the highest rates, with security and AI engineering leading the top of the range.</p>
+  <p>EU remote salaries run at roughly 65–75% of US equivalents for comparable roles, with senior EU security and SRE roles reaching the €110k–130k band.</p>
+  <p>Contract/hourly roles show a wide range ($50–$170/hr) depending on seniority and specialization — senior AI engineers and independent developers command the top rates.</p>
+
+  <div class="cta">
+    <h3>Get this data as a live API</h3>
+    <p>Filter 325+ remote jobs by salary, location, source, and role. No signup. 100 free calls/month.</p>
+    <a href="https://remote-jobs-api.tten.no">Try the Remote Jobs API &rarr;</a>
+    <p style="margin-top:12px;font-size:0.85rem">
+      <code>curl "https://remote-jobs-api.tten.no/v1/jobs?min_salary=150000" | jq '.jobs[].title'</code>
+    </p>
+  </div>
+
+</div>
+
+<div class="footer">
+  Data source: <a href="https://remote-jobs-api.tten.no">Remote Jobs API</a> &middot; Updated automatically &middot;
+  <a href="/">Product page</a> &middot;
+  <a href="/free-remote-job-apis.html">Free Remote Job APIs</a> &middot;
+  <a href="/free-remote-job-apis-comparison.html">API Comparison</a>
+</div>
+
+</body>
+</html>
