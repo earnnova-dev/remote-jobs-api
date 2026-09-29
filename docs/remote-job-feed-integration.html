@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add a Live Remote Job Feed to Your Job Board or App (2026) — One JSON Endpoint</title>
+<meta name="description" content="Add a live, normalized remote-job feed to your job board, app, or internal tool with a single JSON endpoint. Copy-paste Python for pulling the feed on a schedule, filtering by skills and minimum salary, ranking by fit score, and storing new jobs — no scraping, no five fragile parsers.">
+<meta name="keywords" content="remote job feed, add job feed to site, remote job data feed, job feed api, integrate remote jobs, remote job listings api, job board data feed, pull remote jobs json, remote job api python, remote jobs api integration">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-feed-integration.html">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent2:#3fb950;--code:#111820}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+.wrap{max-width:900px;margin:0 auto;padding:0 22px}
+header{padding:44px 0 24px;border-bottom:1px solid var(--border)}
+h1{font-size:32px;margin:0 0 12px;line-height:1.2}
+.sub{font-size:17px;color:var(--muted);margin:0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13.5px}
+code{background:var(--panel);padding:2px 6px;border-radius:5px;font-size:14px}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+section{padding:30px 0}
+h2{font-size:23px;margin:0 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.cta{display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;font-weight:600}
+footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font-size:14px}
+.note{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:14.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+th,td{border:1px solid var(--border);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:var(--panel)}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>Add a Live Remote Job Feed to Your Job Board or App</h1>
+  <p class="sub">One JSON endpoint gives you live, normalized remote jobs from five boards. Here's exactly how to pull the feed on a schedule, filter it, rank it, and store the new jobs — copy-paste Python, no scraping.</p>
+</header>
+
+<section class="wrap">
+  <p>Building a job board, a career page, an internal hiring tool, or a job-recommendation feature usually starts with the same painful problem: every job board exposes its data in a different shape. Remotive is a JSON API, We Work Remotely is JSON, RemoteOK is different again, Hacker News is a third schema. Maintaining one parser per board is slow and breaks the moment a site changes a field.</p>
+  <p>The faster path is to point your app at a <em>single</em> endpoint that already returns one clean, normalized schema — and just render what comes back. That's what the <a href="https://remote-jobs-api.tten.no">Remote Jobs API</a> does: one endpoint, one schema, live data from five boards (Remotive, RemoteOK, Jobicy, We Work Remotely, Hacker News), no scraping on your side.</p>
+  <div class="note"><strong>What you get:</strong> one <code>GET /v1/jobs</code> call returns up to 500 normalized job records with <code>title</code>, <code>company</code>, <code>location</code>, <code>salary</code>, <code>source</code>, <code>tags</code>, and an optional 0–100 <code>fit_score</code> when you pass skills. Free tier: 100 calls/month, all five boards.</div>
+</section>
+
+<section class="wrap">
+  <h2>The endpoint and its parameters</h2>
+  <p>Everything lives on one route. The useful knobs are in the query string:</p>
+  <table>
+    <tr><th>Param</th><th>Notes</th></tr>
+    <tr><td><code>skills</code></td><td>Comma-separated keywords (e.g. <code>python,backend,api</code>). Adds a <code>fit_score</code> to every job and ranks the best matches first.</td></tr>
+    <tr><td><code>source</code></td><td>Restrict to one board: <code>remotive</code>, <code>remoteok</code>, <code>jobicy</code>, <code>wwr</code>, or <code>hn</code>.</td></tr>
+    <tr><td><code>limit</code></td><td>1–500 results (default 50).</td></tr>
+    <tr><td><code>min_score</code></td><td>0–100. Keep only jobs above this fit score (needs <code>skills</code>).</td></tr>
+    <tr><td><code>min_salary</code></td><td>Filter by the parsed top-of-range salary; drops jobs with no parsed salary.</td></tr>
+  </table>
+  <pre><code>curl "https://remote-jobs-api.tten.no/v1/jobs?skills=python,backend,api&amp;limit=3"</code></pre>
+  <p>A real response (shape, not a live snapshot — values rotate):</p>
+  <pre><code>{
+  "count": 1,
+  "generated_at": 1790433192,
+  "query": { "skills": ["python"], "source": null, "min_score": null, "min_salary": null, "limit": 1 },
+  "jobs": [
+    {
+      "id": "154077",
+      "title": "Inbound Support Coordinator",
+      "company": "HomeLight",
+      "url": "https://jobicy.com/jobs/154077-...",
+      "location": "Philippines / Any",
+      "salary": "",
+      "salary_min": null,
+      "salary_max": null,
+      "salary_currency": null,
+      "salary_period": null,
+      "category": "",
+      "tags": ["Customer Support & Success", "Full-Time"],
+      "published": "2026-09-29T12:27:15+00:00",
+      "source": "jobicy",
+      "description": "..."
+    }
+  ]
+}</code></pre>
+  <p>Notice the schema is identical no matter which board the job came from — that's the whole point. Your frontend never has to branch on <code>source</code> to render a card.</p>
+</section>
+
+<section class="wrap">
+  <h2>Pull the feed on a schedule (copy-paste)</h2>
+  <p>The typical job-board pattern: on a cron (every 15–30 minutes is plenty), fetch the feed, find the jobs you don't already have, and insert them. Here's the minimal, dependency-light version using only the standard library:</p>
+  <pre><code>import json, time, urllib.request, urllib.parse
+
+BASE = "https://remote-jobs-api.tten.no/v1/jobs"
+
+def fetch_feed(skills="python,backend", limit=100, min_score=None):
+    params = {"skills": skills, "limit": limit}
+    if min_score is not None:
+        params["min_score"] = min_score
+    url = BASE + "?" + urllib.parse.urlencode(params)
+    with urllib.request.urlopen(url, timeout=30) as r:
+        return json.load(r)["jobs"]
+
+# jobs you already know about (your DB, a set of ids, etc.)
+seen = load_existing_job_ids()          # &lt;- your storage
+
+new_jobs = []
+for job in fetch_feed():
+    if job["id"] in seen:
+        continue
+    new_jobs.append(job)
+    save_job(job)                        # &lt;- insert into your store
+
+print(f"{len(new_jobs)} new remote jobs added")</code></pre>
+  <p>Two details worth keeping:</p>
+  <ul>
+    <li><strong>Deduplicate on <code>id</code> + <code>url</code>.</strong> Job ids are stable per board, so a set of ids is enough to know "already seen". If you merge across boards and ids can collide, key on <code>(source, id)</code> or the job <code>url</code>.</li>
+    <li><strong>Cache <code>generated_at</code>.</strong> The feed is a live snapshot. Store it so your "last updated" badge is honest and you can skip a fetch if it's too recent.</li>
+  </ul>
+</section>
+
+<section class="wrap">
+  <h2>Filter and rank without writing parsers</h2>
+  <p>Two things people normally scrape-and-parse by hand are already done server-side:</p>
+  <ul>
+    <li><strong>Salary filtering</strong> — pass <code>min_salary</code> and the API keeps only jobs whose parsed top-of-range salary clears it. No regex over a <code>"$90k–$120k"</code> string on your side.</li>
+    <li><strong>Skill fit ranking</strong> — pass <code>skills</code> and every job gets a 0–100 <code>fit_score</code>, returned best-first. For a "jobs for you" widget, sort by <code>fit_score</code> (or just read the pre-sorted list) and show the top N.</li>
+  </ul>
+  <pre><code># "Show the best Python backend roles at $120k+ top-of-range"
+for job in fetch_feed(skills="python,backend", limit=50, min_score=60):
+    if job.get("salary_max") and job["salary_max"] &lt; 120000:
+        continue
+    print(job["fit_score"], job["title"], "-", job["company"])</code></pre>
+</section>
+
+<section class="wrap">
+  <h2>Wire it into your UI</h2>
+  <p>Because the schema is flat and uniform, a job card is one template:</p>
+  <pre><code>{% for job in feed %}
+  <a class="card" href="{{ job.url }}">
+    <strong>{{ job.title }}</strong> · {{ job.company }}
+    <span class="loc">{{ job.location }}</span>
+    <span class="sal">{{ job.salary or "Salary not listed" }}</span>
+    <span class="src">{{ job.source }}</span>
+    {% if job.fit_score is defined %}<span class="fit">Fit {{ job.fit_score }}</span>{% endif %}
+  </a>
+{% endfor %}</code></pre>
+  <p>You can also ship a static "remote jobs" page that just renders the last fetched feed, refreshed by the same cron — no backend needed beyond the schedule.</p>
+</section>
+
+<section class="wrap">
+  <h2>When to self-host vs use the hosted API</h2>
+  <p>The engine is open source and self-hostable (Helm chart included). Use the <a href="https://remote-jobs-api.tten.no">hosted endpoint</a> if you just need a clean feed and don't want to run the board-scraping layer. Self-host the same engine when you need to stay on your own network, control rate limits, or extend the board set. Same schema either way, so your integration code doesn't change.</p>
+  <p style="margin-top:20px"><a class="cta" href="https://remote-jobs-api.tten.no">Open the API</a> &nbsp; <a class="cta" style="background:#238636" href="https://github.com/earnnova-dev/remote-jobs-api">Source on GitHub</a></p>
+</section>
+
+<footer class="wrap">
+  <p>Remote Jobs API — one endpoint, one schema, live remote jobs from five boards. <a href="https://earnnova-dev.github.io/remote-jobs-api/free-remote-job-apis.html">See the free APIs &amp; data sources</a> or <a href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-scraper.html">scraper vs. API comparison</a>.</p>
+</footer>
+</body>
+</html>
