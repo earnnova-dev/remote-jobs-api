@@ -45,6 +45,7 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
   <span class="badge">5 boards</span>
   <span class="badge">JSON + CSV</span>
   <span class="badge">0-100 fit score</span>
+  <span class="badge">Structured salary</span>
   <span class="badge">Stdlib-only Python</span>
   <span class="badge">📦 pip installable</span>
   <span class="badge">MIT</span>
@@ -62,6 +63,7 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
     <div class="card"><h3>One schema, every board</h3><p>No per-board adapters on your side. A <code>remotive</code> job and a <code>wwr</code> job look identical.</p></div>
     <div class="card"><h3>No session scraping</h3><p>Reads public job-board endpoints only — no browser, no accounts, no fragile login flows.</p></div>
     <div class="card"><h3>Self-hostable</h3><p>Pure Python stdlib, zero dependencies. Run it on a laptop, a $5 VPS, or the included Dockerfile.</p></div>
+    <div class="card"><h3>Structured salary</h3><p>Boards that publish pay come back as parsed <code>salary_min</code>/<code>salary_max</code> + <code>currency</code>/<code>period</code> — filter by floor with <code>?min_salary=</code>, no regex on your side.</p></div>
     <div class="card"><h3>Deterministic fit scoring</h3><p>No hidden LLM, no black box — reproducible ranking you can reason about and unit-test.</p></div>
   </div>
 </section>
@@ -84,6 +86,7 @@ footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font
       <tr><td><code>source</code></td><td>string</td><td><code>remotive</code> / <code>remoteok</code> / <code>jobicy</code> / <code>wwr</code> / <code>hn</code></td></tr>
       <tr><td><code>limit</code></td><td>int</td><td>1-500 (default 50)</td></tr>
       <tr><td><code>min_score</code></td><td>int</td><td>0-100, filter by fit (needs <code>skills</code>)</td></tr>
+      <tr><td><code>min_salary</code></td><td>int</td><td>Minimum <code>salary_min</code> (number), e.g. <code>?min_salary=100000</code> — keeps only listings whose parsed floor meets it</td></tr>
       <tr><td><code>format</code></td><td>string</td><td><code>json</code> (default) or <code>csv</code></td></tr>
     </tbody>
   </table>
@@ -156,10 +159,15 @@ var liveSnapshotTotal=null;
       "category": "Back-End Programming",
       "source": "wwr",
       "published": "2026-09-15T09:01:36+00:00",
+      "salary_min": 85000,
+      "salary_max": 110000,
+      "salary_currency": "USD",
+      "salary_period": "year",
       "fit_score": 80
     }
   ]
 }</code></pre>
+  <p class="tag">Fields shown when the board publishes them — <code>salary_min</code>, <code>salary_max</code>, <code>salary_currency</code> and <code>salary_period</code> are present on listings that carry parsed pay, and <code>null</code> where a board doesn&#39;t publish it. Filter on the floor with <code>?min_salary=</code> (e.g. <code>?min_salary=100000</code>).</p>
 </section>
 
 <section class="wrap">
