@@ -8,6 +8,13 @@
 #        a random token (stored in the secret). Retrieve with:
 #        kubectl get secret rja-<release> -o jsonpath='{.data.token}' | base64 -d
 
+# Recreate is REQUIRED here: this is a single-replica app backed by a
+# ReadWriteOnce (RWO) PVC. The default RollingUpdate strategy deadlocks —
+# the new pod can't mount /data until the old pod releases it, but RollingUpdate
+# won't terminate the old pod until the new one is ready. Recreate tears down
+# the old pod first, so the new one can take the volume.
+strategy: Recreate
+
 image:
   # Built automatically by GitHub Actions -> ghcr.io/earnnova-dev/remote-jobs-api
   repository: ghcr.io/earnnova-dev/remote-jobs-api

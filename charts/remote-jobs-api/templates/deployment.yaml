@@ -6,6 +6,8 @@ metadata:
   labels:
     {{- include "remote-jobs-api.labels" . | nindent 4 }}
 spec:
+  strategy:
+    type: {{ .Values.strategy }}
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
