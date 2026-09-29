@@ -21,6 +21,9 @@ Built for:
   laptop, a $5 VPS, or containerize it with the included Dockerfile.
 - **Deterministic fit scoring.** No hidden LLM, no black box — reproducible
   ranking you can reason about and unit-test.
+- **Structured salary, machine-filterable.** Every listing carries parsed
+  `salary_min` / `salary_max` / `salary_currency` / `salary_period`, and
+  `?min_salary=N` filters by the top of the range — no regex on your side.
 
 ## Endpoints
 
@@ -40,6 +43,7 @@ Query params:
 | `source` | string | `remotive` / `remoteok` / `jobicy` / `wwr` / `hn` |
 | `limit` | int | 1-500 (default 50) |
 | `min_score` | int | 0-100, filter by fit (needs `skills`) |
+| `min_salary` | number | min salary, filters on the parsed top-of-range (`salary_max`); drops jobs with no parsed salary |
 | `format` | string | `json` (default) or `csv` |
 
 ### Example
@@ -59,6 +63,11 @@ curl "https://<your-host>/v1/jobs?skills=python,backend,api&limit=3"
       "company": "Proxify AB",
       "url": "https://weworkremotely.com/remote-jobs/proxify-ab-senior-backend-developer-python-10",
       "location": "Anywhere in the World",
+      "salary": "USD 170,000-200,000 / yearly",
+      "salary_min": 170000,
+      "salary_max": 200000,
+      "salary_currency": "USD",
+      "salary_period": "year",
       "category": "Back-End Programming",
       "source": "wwr",
       "published": "2026-09-15T09:01:36+00:00",
