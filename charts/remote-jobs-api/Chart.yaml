@@ -2,7 +2,7 @@ apiVersion: v2
 name: remote-jobs-api
 description: Normalized remote-job data API with skill matching, API keys, rate limiting and per-plan quotas.
 type: application
-version: 1.2.6
+version: 1.2.7
 appVersion: "1.2.5"
 home: https://github.com/earnnova-dev/remote-jobs-api
 sources:
