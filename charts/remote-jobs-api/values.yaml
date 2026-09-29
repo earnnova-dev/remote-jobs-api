@@ -12,7 +12,7 @@ image:
   # Built automatically by GitHub Actions -> ghcr.io/earnnova-dev/remote-jobs-api
   repository: ghcr.io/earnnova-dev/remote-jobs-api
   # Immutable release tag. Do not use "latest" in production.
-  tag: "1.2.7"
+  tag: "1.2.8"
   digest: ""
   pullPolicy: IfNotPresent
 
