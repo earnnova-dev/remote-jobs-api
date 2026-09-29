@@ -469,13 +469,27 @@ class Handler(BaseHTTPRequestHandler):
             if not customer:
                 customer = _STRIPE.create_customer(email)
                 _accounts.set_stripe(email, customer=customer)
-            url = _STRIPE.create_checkout_session(
-                customer=customer,
-                price_id=(_PRICE_PRO if plan_id == "pro" else _PRICE_TEAM),
-                success_url=f"{_BASE_URL}/dashboard",
-                cancel_url=f"{_BASE_URL}/checkout/{plan_id}",
-                client_reference=email,
-            )
+            try:
+                url = _STRIPE.create_checkout_session(
+                    customer=customer,
+                    price_id=(_PRICE_PRO if plan_id == "pro" else _PRICE_TEAM),
+                    success_url=f"{_BASE_URL}/dashboard",
+                    cancel_url=f"{_BASE_URL}/checkout/{plan_id}",
+                    client_reference=email,
+                )
+            except StripeError:
+                # Stored customer id is likely from a different Stripe mode
+                # (e.g. a test-mode customer under a live key). Self-heal:
+                # create a fresh customer and retry once.
+                customer = _STRIPE.create_customer(email)
+                _accounts.set_stripe(email, customer=customer)
+                url = _STRIPE.create_checkout_session(
+                    customer=customer,
+                    price_id=(_PRICE_PRO if plan_id == "pro" else _PRICE_TEAM),
+                    success_url=f"{_BASE_URL}/dashboard",
+                    cancel_url=f"{_BASE_URL}/checkout/{plan_id}",
+                    client_reference=email,
+                )
         except StripeError as e:
             return self._html(502, web.checkout_page(plan_id) +
                               f'<div class="wrap"><p class="error">Stripe error: {e}</p></div>')
