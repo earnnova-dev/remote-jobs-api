@@ -59,6 +59,34 @@ class StripeClient:
         except urllib.error.URLError as e:
             raise StripeError(f"stripe network error: {e.reason}")
 
+    def get_price(self, price_id: str) -> Optional[dict]:
+        """Fetch a price object by id (used to map a price -> plan at webhook time)."""
+        try:
+            return self._request("GET", f"/prices/{price_id}")
+        except StripeError:
+            return None
+
+    def resolve_prices(self) -> dict:
+        """Map plan name -> price id, looked up live from Stripe.
+
+        Prices are matched by the 'rja_plan' metadata tag on their product
+        (pro / team). This removes the need to hardcode price ids in env: the
+        app always uses whatever prices actually exist in the Stripe account,
+        in whichever mode (test or live) the secret key is. Returns
+        {'pro': price_id, 'team': price_id} with missing plans omitted.
+        """
+        out: dict = {}
+        data = self._request("GET", "/prices",
+                             query={"active": "true", "limit": "100"})
+        for p in data.get("data", []):
+            if p.get("recurring") is None:
+                continue
+            prod = self._request("GET", f"/products/{p['product']}")
+            plan = (prod.get("metadata") or {}).get("rja_plan", "")
+            if plan in ("pro", "team") and plan not in out:
+                out[plan] = p["id"]
+        return out
+
     # ---------- customers ----------
     def create_customer(self, email: str) -> str:
         data = self._request("POST", "/customers", {"email": email})

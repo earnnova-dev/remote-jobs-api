@@ -93,11 +93,24 @@ _BASE_URL = os.environ.get("RJA_BASE_URL", "https://remote-jobs-api.tten.no").rs
 
 _STRIPE_KEY = os.environ.get("RJA_STRIPE_SECRET_KEY", "")
 _STRIPE_WEBHOOK_SECRET = os.environ.get("RJA_STRIPE_WEBHOOK_SECRET", "")
-_PRICE_PRO = os.environ.get("RJA_STRIPE_PRICE_PRO", "")
-_PRICE_TEAM = os.environ.get("RJA_STRIPE_PRICE_TEAM", "")
 _STRIPE = StripeClient(_STRIPE_KEY) if _STRIPE_KEY else None
-_STRIPE_CONFIGURED = bool(_STRIPE_KEY and _PRICE_PRO and _PRICE_TEAM)
-_PRICE_TO_PLAN = {p: pl for p, pl in [(_PRICE_PRO, "pro"), (_PRICE_TEAM, "team")] if p}
+# Price IDs are NOT taken from env. They are resolved live from the Stripe
+# account (products tagged rja_plan=pro|team) so the app always uses the
+# prices that actually exist in the current key's mode — no test/live
+# mismatch possible, nothing to hardcode in .env or secrets.
+_PRICE_PRO = ""
+_PRICE_TEAM = ""
+_STRIPE_CONFIGURED = bool(_STRIPE_KEY)
+_PRICE_TO_PLAN: dict = {}
+if _STRIPE:
+    try:
+        _resolved = _STRIPE.resolve_prices()
+        _PRICE_PRO = _resolved.get("pro", "")
+        _PRICE_TEAM = _resolved.get("team", "")
+    except StripeError:
+        _resolved = {}
+    _PRICE_TO_PLAN = {pid: plan for plan, pid in _resolved.items() if pid}
+    _STRIPE_CONFIGURED = bool(_PRICE_PRO and _PRICE_TEAM)
 
 # Transactional email (password reset). The reset link is NEVER shown in the
 # UI; it is only delivered by email, or — if no SMTP is configured — logged to
@@ -489,6 +502,17 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------- webhook handlers ----------
     def _price_to_plan(self, price_id: str) -> str:
+        # Dynamic lookup: resolve the live price object and read its product's
+        # rja_plan tag. Falls back to the startup map / default 'pro'. This
+        # means the webhook stays correct across test<->live key switches and
+        # newly created prices without any env change.
+        if price_id and _STRIPE:
+            p = _STRIPE.get_price(price_id)
+            if p:
+                prod = _STRIPE._request("GET", f"/products/{p['product']}")
+                plan = (prod.get("metadata") or {}).get("rja_plan", "")
+                if plan in ("pro", "team"):
+                    return plan
         return _PRICE_TO_PLAN.get(price_id, "pro")
 
     def _on_checkout_completed(self, obj: dict):
