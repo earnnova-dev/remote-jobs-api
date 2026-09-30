@@ -102,9 +102,9 @@ _STRIPE = StripeClient(_STRIPE_KEY) if _STRIPE_KEY else None
 # Kubernetes: an import-time block of Stripe calls can push startup past the
 # readiness probe's initialDelay and trigger a crashloop / "Degraded".
 _STRIPE_PLANS = [
-    {"plan": "pro", "name": "GigWatch — Pro",
+    {"plan": "pro", "name": "Remote Jobs API — Pro",
      "description": "10,000 API calls / month", "amount_cents": 1900, "currency": "usd"},
-    {"plan": "team", "name": "GigWatch — Team",
+    {"plan": "team", "name": "Remote Jobs API — Team",
      "description": "50,000 API calls / month", "amount_cents": 4900, "currency": "usd"},
 ]
 import threading as _threading
@@ -384,10 +384,10 @@ class Handler(BaseHTTPRequestHandler):
         # Deliberately do NOT reveal whether the account exists: same message either way.
         if token:
             link = f"{_BASE_URL}/reset?token={token}"
-            subject = "Reset your GigWatch password"
+            subject = "Reset your Remote Jobs API password"
             html = reset_email_html(subject, email, link, 30)
             text = (
-                "Hi,\n\nYou requested a password reset for GigWatch.\n"
+                "Hi,\n\nYou requested a password reset for Remote Jobs API.\n"
                 f"Reset your password here (expires in 30 minutes):\n{link}\n\n"
                 "If you didn't request this, you can ignore this email.\n"
             )
