@@ -5,6 +5,7 @@ Endpoints
     GET  /health                 -> {"status":"ok",...}
     GET  /v1/jobs                -> normalized jobs (requires API key)
     GET  /v1/jobs/sources        -> {"sources":[...]}
+    GET  /v1/snapshot            -> live market snapshot (no key, no account)
 
   Storefront (browser):
     GET  /                        -> landing / pricing
@@ -330,6 +331,74 @@ class Handler(BaseHTTPRequestHandler):
                       "min_salary": min_salary, "limit": limit},
             "jobs": jobs,
         })
+
+
+    # ---------- market snapshot (public, no key) ----------
+    def _handle_snapshot(self):
+        raw = _cached_all()
+        total = len(raw)
+        jobs = [j.to_dict() for j in raw]
+
+        # demand by source
+        by_source = {}
+        for j in jobs:
+            s = j.get("source", "unknown")
+            by_source[s] = by_source.get(s, 0) + 1
+
+        # salary distribution (USD-normalised; only jobs with salary_min)
+        salary_vals = []
+        for j in jobs:
+            mn = j.get("salary_min")
+            if mn is not None and mn > 0:
+                salary_vals.append(mn)
+        salary_vals.sort()
+        n = len(salary_vals)
+        salary = {
+            "count_with_salary": n,
+            "coverage_pct": round(100 * n / total, 1) if total else 0,
+        }
+        if n:
+            median_i = n // 2
+            p75_i = int(n * 0.75)
+            salary["median_min"] = salary_vals[median_i]
+            salary["p75_min"] = salary_vals[p75_i]
+            salary["max"] = salary_vals[-1]
+            bands = [0, 50000, 100000, 150000, 200000, 300000, float("inf")]
+            labels = ["<50k", "50-100k", "100-150k", "150-200k", "200-300k", "300k+"]
+            dist = {}
+            for i, lo in enumerate(bands[:-1]):
+                hi = bands[i + 1]
+                dist[labels[i]] = sum(1 for v in salary_vals if lo <= v < hi)
+            salary["distribution"] = dist
+
+        # top skills
+        from collections import Counter
+        skill_counts = Counter()
+        for j in jobs:
+            for t in j.get("tags", []):
+                t = t.strip().lower()
+                if t:
+                    skill_counts[t] += 1
+        top_skills = [{"skill": k, "count": v} for k, v in skill_counts.most_common(15)]
+
+        # top companies
+        comp_counts = Counter()
+        for j in jobs:
+            c = j.get("company", "").strip()
+            if c:
+                comp_counts[c] += 1
+        top_companies = [{"company": k, "openings": v} for k, v in comp_counts.most_common(15)]
+
+        result = {
+            "count_live": total,
+            "sources": SOURCES,
+            "generated_at": int(time.time()),
+            "demand_by_source": dict(sorted(by_source.items(), key=lambda x: -x[1])),
+            "salary": salary,
+            "top_skills": top_skills,
+            "top_companies": top_companies,
+        }
+        return self._json(200, result)
 
     # ---------- storefront ----------
     def _handle_landing(self):
@@ -707,6 +776,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_sources()
         if path == "/v1/jobs":
             return self._handle_jobs(q)
+        if path == "/v1/snapshot":
+            return self._handle_snapshot()
         if path == "/":
             return self._handle_landing()
         if path == "/register":

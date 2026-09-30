@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Remote Job Market Snapshot 2026 — Live Salary, Demand & Skills Data</title>
+<meta name="description" content="Live remote job market snapshot for 2026: how many remote jobs are open right now, what salaries they pay (median, P75), demand by job board, and the most in-demand skills — computed in real time from 330+ normalized listings across Remotive, RemoteOK, Jobicy, We Work Remotely and Hacker News.">
+<meta name="keywords" content="remote job market 2026, remote job market snapshot, remote salary data, remote hiring trends 2026, remote jobs by source, remote demand by job board, in-demand remote skills, remote tech salary 2026, live remote jobs count">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-market-snapshot-2026.html">
+<meta property="og:title" content="Remote Job Market Snapshot 2026 — Live Salary, Demand & Skills Data">
+<meta property="og:description" content="A live, data-driven snapshot of the remote job market: job counts, salary distribution, demand by board, and top in-demand skills — computed in real time from 330+ normalized listings.">
+<meta property="og:url" content="https://earnnova-dev.github.io/remote-jobs-api/remote-job-market-snapshot-2026.html">
+<meta property="og:type" content="article">
+<style>
+  :root{--bg:#0f1117;--card:#1a1d2e;--border:#2a2d3e;--text:#e2e8f0;--muted:#94a3b8;--accent:#60a5fa;--green:#34d399;--amber:#fbbf24;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6}
+  .hero{background:linear-gradient(135deg,#1e3a5f 0%,#0f1117 70%);padding:48px 24px 40px;text-align:center;border-bottom:1px solid var(--border)}
+  .hero h1{font-size:2.2rem;margin-bottom:12px;font-weight:700}
+  .hero .subtitle{color:var(--muted);font-size:1.05rem;max-width:660px;margin:0 auto 16px}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:0.85rem;color:var(--green)}
+  .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .container{max-width:880px;margin:0 auto;padding:32px 24px}
+  h2{font-size:1.4rem;margin:36px 0 16px;color:var(--text)}
+  h3{font-size:1.1rem;margin:24px 0 10px}
+  p{color:var(--muted);margin-bottom:12px}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px;margin:24px 0}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+  .stat-card .value{font-size:1.8rem;font-weight:700;color:var(--accent)}
+  .stat-card .label{font-size:0.85rem;color:var(--muted);margin-top:4px}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:0.9rem}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+  th{background:var(--card);color:var(--text)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:6px 0}
+  .bar-label{width:130px;font-size:0.85rem;color:var(--muted);flex-shrink:0}
+  .bar-track{flex:1;height:16px;background:var(--card);border-radius:6px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--accent);border-radius:6px}
+  .bar-val{width:52px;text-align:right;font-size:0.8rem;color:var(--text);font-variant-numeric:tabular-nums}
+  code{background:var(--card);padding:2px 6px;border-radius:5px;font-size:0.9rem;color:var(--green)}
+  pre{background:#111820;border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:0.85rem;margin:14px 0}
+  pre code{background:none;padding:0}
+  .cta{display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;margin-top:8px}
+  .note{font-size:0.8rem;color:var(--muted);margin-top:6px}
+  footer{border-top:1px solid var(--border);padding:26px 24px;color:var(--muted);font-size:0.85rem;text-align:center}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>Remote Job Market Snapshot, 2026</h1>
+  <p class="subtitle">A live, data-driven read on the remote market — how many jobs are open right now, what they actually pay, where the demand is, and which skills are hot. Refreshed from a single API call over 330+ normalized listings from five boards.</p>
+  <span class="badge"><span class="dot"></span><span id="livebadge">loading live market…</span></span>
+</div>
+
+<div class="container">
+  <p>Most "remote salary" pages publish a static chart from last year's data and call it done. This page is different: every number below is computed in <strong>real time</strong> by the <a href="https://remote-jobs-api.tten.no/v1/snapshot">Remote Jobs API snapshot endpoint</a>, which pulls live listings from <strong>Remotive, RemoteOK, Jobicy, We Work Remotely, and Hacker News</strong>, normalizes them into one schema, and aggregates salary, demand, and skills in one call. The figures on this page are a captured sample; the endpoint gives you the current market the moment you query it.</p>
+
+  <h2>Headline numbers</h2>
+  <div class="stats-grid" id="stats">
+    <div class="stat-card"><div class="value" id="s-count">—</div><div class="label">Live remote jobs right now</div></div>
+    <div class="stat-card"><div class="value" id="s-median">—</div><div class="label">Median reported salary (min of range)</div></div>
+    <div class="stat-card"><div class="value" id="s-p75">—</div><div class="label">75th-percentile salary</div></div>
+    <div class="stat-card"><div class="value" id="s-cov">—</div><div class="label">Listings that report a salary</div></div>
+  </div>
+  <p class="note">Salary figures are the <em>minimum</em> of each listing's posted range (in USD where the board provides a range). Coverage reflects that a large share of remote boards don't post salary at all — itself a useful signal.</p>
+
+  <h2>Demand by job board</h2>
+  <p>Where the open remote roles are concentrated right now. Jobicy and RemoteOK currently dominate raw volume; Remotive and Hacker News contribute fewer but more senior/tech-weighted listings.</p>
+  <div id="demand"></div>
+
+  <h2>Salary distribution</h2>
+  <p>The shape of what remote jobs actually pay. The mass sits in the $50k–$150k band, with a long tail above $200k — the classic remote-engineer pay curve.</p>
+  <div id="dist"></div>
+
+  <h2>Most in-demand skills &amp; tags</h2>
+  <p>The top tags across all live listings — a rough but honest proxy for what the remote market is hiring for right now (seniority, role families, and a handful of hard skills).</p>
+  <div id="skills"></div>
+
+  <h2>Companies with the most open remote roles</h2>
+  <table>
+    <thead><tr><th>Company</th><th style="text-align:right">Openings</th></tr></thead>
+    <tbody id="companies"></tbody>
+  </table>
+
+  <h2>Get this data yourself</h2>
+  <p>One call returns the whole snapshot as JSON — count, salary distribution, demand by source, top skills, and top companies. No scraping, no per-board parsing, no key for the snapshot.</p>
+  <pre><code>curl https://remote-jobs-api.tten.no/v1/snapshot</code></pre>
+  <p>Full normalized listings (title, company, salary_min/salary_max, tags, source, fit-score) live at <code>/v1/jobs</code>. Self-host the whole thing — it's stdlib-only Python and MIT licensed — or use the live API.</p>
+  <a class="cta" href="https://earnnova-dev.github.io/remote-jobs-api/">Explore the Remote Jobs API →</a>
+</div>
+
+<footer>
+  Data source: Remote Jobs API snapshot endpoint · Boards: Remotive, RemoteOK, Jobicy, We Work Remotely, Hacker News · <a href="https://earnnova-dev.github.io/remote-jobs-api/">remote-jobs-api.tten.no</a>
+</footer>
+
+<script>
+var API = "https://remote-jobs-api.tten.no/v1/snapshot";
+function money(v){ return v==null?"—":"$"+Math.round(v/1000)+"k"; }
+function bar(label, val, max){
+  var pct = max? Math.max(2, Math.round(100*val/max)) : 0;
+  return '<div class="bar-row"><span class="bar-label">'+label+'</span>'
+    +'<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div>'
+    +'<span class="bar-val">'+val+'</span></div>';
+}
+function fill(s){
+  document.getElementById("livebadge").textContent = s.count_live + " live jobs · " + new Date(s.generated_at*1000).toISOString().slice(0,10);
+  document.getElementById("s-count").textContent = s.count_live;
+  document.getElementById("s-median").textContent = money(s.salary.median_min);
+  document.getElementById("s-p75").textContent = money(s.salary.p75_min);
+  document.getElementById("s-cov").textContent = s.salary.coverage_pct + "%";
+  var ds = Object.keys(s.demand_by_source).map(function(k){return [k, s.demand_by_source[k]];});
+  var dmax = Math.max.apply(null, ds.map(function(x){return x[1];}));
+  document.getElementById("demand").innerHTML = ds.map(function(x){return bar(x[0], x[1], dmax);}).join("");
+  var dd = s.salary.distribution||{};
+  var dmax2 = Math.max.apply(null, Object.keys(dd).map(function(k){return dd[k];}).concat([1]));
+  document.getElementById("dist").innerHTML = Object.keys(dd).map(function(k){return bar(k, dd[k], dmax2);}).join("");
+  document.getElementById("skills").innerHTML = (s.top_skills||[]).map(function(t){return bar(t.skill, t.count, s.top_skills[0].count);}).join("");
+  document.getElementById("companies").innerHTML = (s.top_companies||[]).map(function(c){
+    return "<tr><td>"+c.company+"</td><td class='num'>"+c.openings+"</td></tr>";
+  }).join("");
+}
+// Live first; static fallback so the page is useful even if the API is briefly down.
+var FALLBACK = {
+  count_live: 332, sources:["remotive","remoteok","jobicy","wwr","hn"],
+  demand_by_source:{"jobicy":120,"remoteok":99,"wwr":88,"remotive":16,"hn":9},
+  salary:{count_with_salary:89,coverage_pct:26.8,median_min:104800,p75_min:150000,max:304500,
+    distribution:{"<50k":20,"50-100k":23,"100-150k":22,"150-200k":14,"200-300k":8,"300k+":2}},
+  top_skills:[{skill:"full-time",count:112},{skill:"exec",count:65},{skill:"digital nomad",count:55},{skill:"sales",count:52},{skill:"customer support",count:49},{skill:"marketing",count:47},{skill:"ops",count:42},{skill:"dev",count:41},{skill:"engineer",count:40},{skill:"design",count:36}],
+  top_companies:[{company:"Chainguard",openings:5},{company:"Salesloft",openings:5},{company:"saas.group",openings:4},{company:"ShopFully",openings:4},{company:"Life360",openings:4},{company:"Truelogic",openings:4},{company:"Tekmetric",openings:4},{company:"iMerit Technology",openings:4},{company:"Bjak",openings:4},{company:"EPAM Systems",openings:3}]
+};
+fetch(API).then(function(r){return r.json();}).then(fill).catch(function(){fill(FALLBACK);});
+</script>
+</body>
+</html>
