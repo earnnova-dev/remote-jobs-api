@@ -430,11 +430,20 @@ def dashboard(user: dict, prices: Optional[dict] = None) -> str:
     return _shell("Dashboard", body)
 
 
-def checkout_page(plan_id: str, prices: Optional[dict] = None) -> str:
+def checkout_page(plan_id: str, prices: Optional[dict] = None, email: str = "") -> str:
     plan = next((p for p in PLANS if p["id"] == plan_id), None)
     if plan is None:
         return _shell("Plan not found", '<div class="wrap"><p>Unknown plan.</p><a href="/">← back</a></div>')
     price = (prices or {}).get(plan_id, plan["monthly"])
+    if email:
+        # Logged in: pre-fill the email, no need to retype it.
+        email_field = (
+            f'<input type="email" name="email" required value="{_esc(email)}" '
+            f'autocomplete="email" readonly tabindex="-1" '
+            f'style="background:var(--bg);color:var(--muted)">'
+        )
+    else:
+        email_field = '<input type="email" name="email" required autocomplete="email">'
     body = f"""
 <div class="wrap" style="max-width:440px;padding-top:60px">
   <h1 style="margin:0 0 6px">Checkout — {plan["name"]}</h1>
@@ -444,7 +453,7 @@ def checkout_page(plan_id: str, prices: Optional[dict] = None) -> str:
   <div class="card">
     <form method="post" action="/checkout/{plan_id}">
       <label>Email</label>
-      <input type="email" name="email" required autocomplete="email">
+      {email_field}
       <div style="margin-top:16px"><button class="btn" type="submit">Pay ${price} with Stripe</button></div>
     </form>
     <p style="margin-top:14px;color:var(--muted);font-size:13px">

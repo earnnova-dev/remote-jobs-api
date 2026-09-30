@@ -447,7 +447,8 @@ class Handler(BaseHTTPRequestHandler):
     def _handle_checkout_page(self, plan_id):
         if plan_id not in ("pro", "team"):
             return self._html(404, web.checkout_page("bad"))
-        return self._html(200, web.checkout_page(plan_id, prices=_prices()))
+        return self._html(200, web.checkout_page(plan_id, prices=_prices(),
+                                                 email=self._session_email()))
 
     def _handle_checkout(self, plan_id):
         if plan_id not in ("pro", "team"):
