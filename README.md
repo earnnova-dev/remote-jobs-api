@@ -77,6 +77,22 @@ curl "https://<your-host>/v1/jobs?skills=python,backend,api&limit=3"
 }
 ```
 
+## Try the live API (no key required)
+
+The endpoint is live — no install, no key, no account to test it:
+
+```bash
+curl "https://remote-jobs-api.tten.no/v1/jobs?skills=python,backend,api&limit=3"
+```
+
+Free tier: 100 calls/month, all 5 boards. When you're ready, self-serve:
+
+- **Start free** → https://remote-jobs-api.tten.no/register
+- **Dashboard** → https://remote-jobs-api.tten.no/dashboard
+- **Upgrade to Pro ($19/mo)** → https://remote-jobs-api.tten.no/checkout/pro
+
+Self-hosting below gives you the same engine for $0.
+
 ## Run it yourself
 
 Zero runtime dependencies — it's pure Python stdlib.
