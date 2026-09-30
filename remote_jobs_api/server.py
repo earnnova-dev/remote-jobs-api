@@ -207,6 +207,18 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Set-Cookie", set_cookie)
         self.end_headers()
 
+    def _request_base(self) -> str:
+        """Base URL of the domain the client actually used.
+
+        Lets checkout/portal redirects (and API examples) follow whichever
+        domain the user is on (remote-jobs-api.tten.no or gigwatch.tten.no),
+        instead of always bouncing them to the canonical one. Falls back to
+        the configured base if the Host header is absent."""
+        host = (self.headers.get("Host") or "").strip()
+        if host:
+            return "https://" + host.rstrip("/")
+        return _BASE_URL
+
     def _read_body(self) -> bytes:
         length = int(self.headers.get("Content-Length") or 0)
         return self.rfile.read(length) if length else b""
@@ -471,11 +483,12 @@ class Handler(BaseHTTPRequestHandler):
                 customer = _STRIPE.create_customer(email)
                 _accounts.set_stripe(email, customer=customer)
             try:
+                base = self._request_base()
                 url = _STRIPE.create_checkout_session(
                     customer=customer,
                     price_id=(_PRICE_PRO if plan_id == "pro" else _PRICE_TEAM),
-                    success_url=f"{_BASE_URL}/dashboard",
-                    cancel_url=f"{_BASE_URL}/checkout/{plan_id}",
+                    success_url=f"{base}/dashboard",
+                    cancel_url=f"{base}/checkout/{plan_id}",
                     client_reference=email,
                 )
             except StripeError:
@@ -484,11 +497,12 @@ class Handler(BaseHTTPRequestHandler):
                 # create a fresh customer and retry once.
                 customer = _STRIPE.create_customer(email)
                 _accounts.set_stripe(email, customer=customer)
+                base = self._request_base()
                 url = _STRIPE.create_checkout_session(
                     customer=customer,
                     price_id=(_PRICE_PRO if plan_id == "pro" else _PRICE_TEAM),
-                    success_url=f"{_BASE_URL}/dashboard",
-                    cancel_url=f"{_BASE_URL}/checkout/{plan_id}",
+                    success_url=f"{base}/dashboard",
+                    cancel_url=f"{base}/checkout/{plan_id}",
                     client_reference=email,
                 )
         except StripeError as e:
@@ -506,7 +520,7 @@ class Handler(BaseHTTPRequestHandler):
         if not stripe_configured() or not customer:
             return self._json(400, {"error": "no stripe customer on this account"})
         try:
-            url = _STRIPE.create_portal_session(customer=customer, return_url=f"{_BASE_URL}/dashboard")
+            url = _STRIPE.create_portal_session(customer=customer, return_url=f"{self._request_base()}/dashboard")
         except StripeError as e:
             return self._json(502, {"error": f"stripe portal error: {e}"})
         return self._redirect(url)
