@@ -148,7 +148,7 @@ _DEMO_JS = r"""
       }).join('');
       copy.style.visibility='visible';
       copy.onclick=function(){
-        var base='https://remote-jobs-api.tten.no'+url;
+        var base=location.origin+url;
         var cmd='curl -H "Authorization: Bearer ***" "'+base+'"';
         (navigator.clipboard?navigator.clipboard.writeText(cmd):Promise.reject()).then(function(){
           copy.textContent='Copied!'; setTimeout(function(){copy.textContent='Copy this curl';},1500);
@@ -202,7 +202,7 @@ def landing(stripe_configured: bool = False, prices: Optional[dict] = None,
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Remote Jobs API — normalized remote job data</title>
+<title>GigWatch — one API for all remote jobs</title>
 <style>{_base_css()}</style></head><body>
 <header><div class="wrap row">
   <div class="logo">Remote&nbsp;<span>Jobs&nbsp;API</span></div>
@@ -261,7 +261,7 @@ def landing(stripe_configured: bool = False, prices: Optional[dict] = None,
   </div>
 </div>
 {_DEMO_JS}
-<footer><div class="wrap">© 2026 Remote Jobs API · <a href="/docs">Docs</a> · <a href="mailto:earnnova@tten.no">earnnova@tten.no</a></div></footer>
+<footer><div class="wrap">© 2026 GigWatch · <a href="/docs">Docs</a> · <a href="mailto:earnnova@tten.no">earnnova@tten.no</a></div></footer>
 </body></html>"""
 
 
@@ -469,9 +469,9 @@ def checkout_page(plan_id: str, prices: Optional[dict] = None, email: str = "") 
 def _shell(title: str, body: str) -> str:
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} — Remote Jobs API</title>
+<title>{title} — GigWatch</title>
 <style>{_base_css()}</style></head><body>
-<header><div class="wrap row"><div class="logo">Remote&nbsp;<span>Jobs&nbsp;API</span></div>
+<header><div class="wrap row"><div class="logo">Gig<span>Watch</span></div>
   <a href="/" class="btn btn-ghost">Home</a></div></header>
 {body}
 <footer><div class="wrap">© 2026 Remote Jobs API · <a href="mailto:earnnova@tten.no">earnnova@tten.no</a></div></footer>
