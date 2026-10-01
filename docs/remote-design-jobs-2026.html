@@ -112,10 +112,10 @@
     <div class="stat-card"><span class="num">$90k</span><span class="lbl">Median salary (of 86 listed)</span></div>
   </div>
 
-  <p>Design job searches usually mean tab-hopping between Remotive, RemoteOK, Jobicy, We Work Remotely, and the weekly Hacker News "Who is hiring" thread &mdash; then mentally deduping the overlap. <a href="https://remote-jobs-api.tten.no">Remote Jobs API</a> aggregates all five into a single REST endpoint, deduplicates them, and lets you filter to exactly the design roles you want. This page tracks the design slice of that feed &mdash; product designers, UX designers, and the design-engineers who code their own interfaces.</p>
+  <p>Design job searches usually mean tab-hopping between Remotive, RemoteOK, Jobicy, We Work Remotely, and the weekly Hacker News "Who is hiring" thread &mdash; then mentally deduping the overlap. <a href="https://remote-jobs-api.tten.no">Remote Jobs API</a> aggregates all five into a single REST endpoint, deduplicates them, and lets you rank and filter the design roles you want. This page tracks the design slice of that feed &mdash; product designers, UX designers, and the design-engineers who code their own interfaces.</p>
 
   <h2>What's in the feed today</h2>
-  <p>The current snapshot (2026-10-01) contains <strong>329 live remote jobs</strong> across five sources. Filtering the feed to design roles returns <strong>11 matching roles</strong> right now, e.g.:</p>
+  <p>The current snapshot (2026-10-01) contains <strong>329 live remote jobs</strong> across five sources. The feed's <code>skills=design</code> query does not hard-filter to design-only jobs &mdash; it ranks every posting for a design match, so a handful of the strongest design matches lead the list right now, e.g.:</p>
   <table>
     <thead>
       <tr><th>Role</th><th>Company</th><th>Salary</th><th>Source</th></tr>

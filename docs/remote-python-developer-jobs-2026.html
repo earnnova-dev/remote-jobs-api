@@ -112,10 +112,10 @@
     <div class="stat-card"><span class="num">$152k</span><span class="lbl">Median salary (of 88 listed)</span></div>
   </div>
 
-  <p>Most Python job searches mean tab-hopping between Remotive, RemoteOK, Jobicy, We Work Remotely, and the weekly Hacker News "Who is hiring" thread &mdash; then mentally deduping the overlap. <a href="https://remote-jobs-api.tten.no">Remote Jobs API</a> aggregates all five into a single REST endpoint, deduplicates them, and lets you filter to exactly the roles you want &mdash; including a dedicated <code>python</code> skill filter.</p>
+  <p>Most Python job searches mean tab-hopping between Remotive, RemoteOK, Jobicy, We Work Remotely, and the weekly Hacker News "Who is hiring" thread &mdash; then mentally deduping the overlap. <a href="https://remote-jobs-api.tten.no">Remote Jobs API</a> aggregates all five into a single REST endpoint, deduplicates them, and lets you rank and filter the roles you want &mdash; including a <code>python</code> skill query that ranks by match strength.</p>
 
   <h2>What's in the feed today</h2>
-  <p>The current snapshot (2026-09-29) contains <strong>323 live remote jobs</strong> across five sources: Jobicy (120), RemoteOK (98), We Work Remotely (80), Remotive (16), and Hacker News (9). Filtering on <code>skills=python</code> returns <strong>50+ matching roles</strong> right now, e.g.:</p>
+  <p>The current snapshot (2026-09-29) contains <strong>323 live remote jobs</strong> across five sources: Jobicy (120), RemoteOK (98), We Work Remotely (80), Remotive (16), and Hacker News (9). The feed's <code>skills=python</code> query does not hard-filter to Python-only jobs &mdash; it ranks every posting for a Python match, so a handful of the strongest Python matches lead the list right now, e.g.:</p>
   <table>
     <thead>
       <tr><th>Role</th><th>Company</th><th>Location</th><th>Source</th></tr>
