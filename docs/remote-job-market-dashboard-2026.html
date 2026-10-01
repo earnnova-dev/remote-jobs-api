@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build a Remote Job Market Dashboard (2026) From One Free API</title>
+<meta name="description" content="Build a live remote-job market dashboard — demand by board, salary distribution, top skills — from a single free JSON endpoint. Copy-paste Python + HTML for pulling /v1/snapshot and /v1/salary-band, no scraping, no paid data provider.">
+<meta name="keywords" content="remote job market dashboard, job market dashboard, labor market intelligence, remote job trends, job market data dashboard, salary distribution dashboard, job demand by source, free job market api, build job market report">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-market-dashboard-2026.html">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent2:#3fb950;--code:#111820}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+.wrap{max-width:900px;margin:0 auto;padding:0 22px}
+header{padding:44px 0 24px;border-bottom:1px solid var(--border)}
+h1{font-size:32px;margin:0 0 12px;line-height:1.2}
+.sub{font-size:17px;color:var(--muted);margin:0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13.5px}
+code{background:var(--panel);padding:2px 6px;border-radius:5px;font-size:14px}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+section{padding:30px 0}
+h2{font-size:23px;margin:0 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.cta{display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;font-weight:600}
+footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font-size:14px}
+.note{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:14.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+th,td{border:1px solid var(--border);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:var(--panel)}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>Build a Remote Job Market Dashboard in ~40 Lines of Python</h1>
+  <p class="sub">Live demand by board, salary distribution, and top skills — pulled from one free JSON endpoint and rendered as a report. No scraping, no paid data provider, no five fragile board parsers.</p>
+</header>
+
+<section class="wrap">
+  <p>Most "job market intelligence" you'll find is either a static PDF that's stale by next month, or a paid enterprise dataset with a sales cycle. The fast, honest version is a <em>live</em> snapshot: what is the remote job market actually doing right now, across the major boards?</p>
+  <p>The <a href="https://remote-jobs-api.tten.no">Remote Jobs API</a> already aggregates five boards (Remotive, RemoteOK, Jobicy, We Work Remotely, Hacker News) into one normalized schema — and exposes two endpoints that hand you the <strong>summary</strong> directly, so you never have to re-parse the raw listings to build a dashboard:</p>
+  <table>
+    <tr><th>Endpoint</th><th>What it returns</th><th>Use for</th></tr>
+    <tr><td><code>GET /v1/snapshot</code></td><td>Live job count, demand by source, salary distribution, top skills</td><td>The "market pulse" header of your dashboard</td></tr>
+    <tr><td><code>GET /v1/salary-band</code></td><td>Per-skill salary bands (min / p25 / median / p75 / max)</td><td>Salary-by-role tables</td></tr>
+  </table>
+  <div class="note">Both endpoints are keyless on the free tier — no token, no account. The numbers below were pulled live from the hosted API on 2026-10-01.</div>
+</section>
+
+<section class="wrap">
+  <h2>1. Pull the market pulse</h2>
+  <p>One call gives you the whole top of the dashboard. No auth, no parameters:</p>
+  <pre><code>import json, urllib.request
+
+def snapshot():
+    with urllib.request.urlopen(
+        "https://remote-jobs-api.tten.no/v1/snapshot", timeout=15
+    ) as r:
+        return json.load(r)
+
+s = snapshot()
+print(s["count_live"], "live jobs across", len(s["sources"]), "boards")
+print("by source:", s["demand_by_source"])
+print("salary:", s["salary"]["coverage_pct"], "% covered, median",
+      s["salary"]["median_min"], "p75", s["salary"]["p75_min"], "max", s["salary"]["max"])
+print("top skills:", [(x["skill"], x["count"]) for x in s["top_skills"][:5]])</code></pre>
+  <p>Against the live API on 2026-10-01 that prints:</p>
+  <pre><code>337 live jobs across 5 boards
+by source: {'jobicy': 120, 'remoteok': 99, 'wwr': 88, 'remotive': 16, 'hn': 14}
+salary: 23.7 % covered, median 97400 p75 154200 max 300900
+top skills: [('full-time', 108), ('exec', 64), ('sales', 55),
+             ('digital nomad', 54), ('customer support', 50)]</code></pre>
+</section>
+
+<section class="wrap">
+  <h2>2. Pull salary-by-skill bands</h2>
+  <p>The second endpoint does the aggregation for you — a salary distribution per skill (a job's tag), sorted by how many listings carry a salary:</p>
+  <pre><code>def salary_bands():
+    with urllib.request.urlopen(
+        "https://remote-jobs-api.tten.no/v1/salary-band", timeout=15
+    ) as r:
+        return json.load(r)
+
+for s in salary_bands()["skills"][:4]:
+    print(f"{s['skill']:<22} n={s['count_with_salary']:>3}  "
+          f"med=${s['median']:,}  p75=${s['p75']:,}  max=${s['max']:,}")</code></pre>
+  <p>Live output (2026-10-01):</p>
+  <pre><code>full-time              n= 48  med=$135,000  p75=$165,000  max=$300,900
+sales                  n= 13  med=$135,000  p75=$150,000  max=$300,000
+software engineering   n= 10  med=$155,000  p75=$180,000  max=$300,900
+exec                   n=  6  med=$150,000  p75=$175,000  max=$263,000</code></pre>
+  <div class="note">Honest caveat, carried on every data page here: salary <em>coverage</em> is ~24% of live jobs (only listings that publish a number), so the bands are a lower bound on the market, not a complete census. State the coverage number in your dashboard so readers know what they're looking at.</div>
+</section>
+
+<section class="wrap">
+  <h2>3. Render it as a report (self-contained HTML)</h2>
+  <p>Combine the two calls into one refreshable report. This writes a single HTML file — no server, no build step, no chart library — that you can refresh on a schedule and post to a blog, an internal wiki, or a static site:</p>
+  <pre><code>def market_report(path="market_report.html"):
+    s = snapshot()
+    sb = salary_bands()
+    sal = s["salary"]
+    rows = "".join(
+        f"<tr><td>{x['skill']}</td><td>{x['count']}</td></tr>"
+        for x in s["top_skills"][:10]
+    )
+    bands = "".join(
+        f"<tr><td>{x['skill']}</td><td>{x['count_with_salary']}</td>"
+        f"<td>${x['median']:,}</td><td>${x['p75']:,}</td><td>${x['max']:,}</td></tr>"
+        for x in sb["skills"][:10]
+    )
+    html = f"""<html><body>
+    <h1>Remote job market &mdash; {s['count_live']} live jobs</h1>
+    <p>Median salary <b>${sal['median_min']:,}</b> (p75 ${sal['p75_min']:,},
+    max ${sal['max']:,}) across {sal['coverage_pct']}% of listings that publish one.</p>
+    <h2>Demand by board</h2>
+    <table>{''.join(f'<tr><td>{k}</td><td>{v}</td></tr>' for k,v in s['demand_by_source'].items())}</table>
+    <h2>Top skills</h2>
+    <table><tr><th>skill</th><th>listings</th></tr>{rows}</table>
+    <h2>Salary bands by skill</h2>
+    <table><tr><th>skill</th><th>n</th><th>median</th><th>p75</th><th>max</th></tr>{bands}</table>
+    </body></html>"""
+    open(path, "w").write(html)
+    return path
+
+print("wrote", market_report())</code></pre>
+  <p>That's the whole dashboard: two GET calls, a small template, one file. Because the data is live, the report is never more than a refresh stale — the exact thing static PDFs can't do.</p>
+</section>
+
+<section class="wrap">
+  <h2>4. Schedule the refresh</h2>
+  <p>Run it on a cron job, a GitHub Action, or a webhook. A GitHub Action that refreshes daily into a repo's <code>docs/</code> (deployed by GitHub Pages) is a complete, free, always-current market dashboard:</p>
+  <pre><code># .github/workflows/market-report.yml
+on:
+  schedule:
+    - cron: "0 6 * * *"      # daily at 06:00 UTC
+  workflow_dispatch: {}
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install nothing   # stdlib only, no deps
+      - run: |
+          python - &lt;&lt;'PY'
+          # ... paste the market_report() function above ...
+          PY
+      - run: git diff --quiet || (git config user.email "ci@local"
+          && git config user.name "market-bot"
+          && git add -A && git commit -m "refresh market report" && git push)</code></pre>
+  <p>Same engine is open source and self-hostable (Helm chart included) if you need the data on your own network — the two summary endpoints stay identical, so the dashboard code doesn't change.</p>
+  <p style="margin-top:20px"><a class="cta" href="https://remote-jobs-api.tten.no/v1/snapshot">Open the live snapshot</a> &nbsp; <a class="cta" style="background:#238636" href="https://github.com/earnnova-dev/remote-jobs-api">Source on GitHub</a></p>
+</section>
+
+<footer class="wrap">
+  <p>Remote Jobs API — one endpoint, one schema, live remote jobs from five boards. <a href="https://earnnova-dev.github.io/remote-jobs-api/free-remote-job-data-api.html">Free remote-job data API</a> &middot; <a href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-market-snapshot-2026.html">See the live market snapshot</a> &middot; <a href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-feed-integration.html">Integrate the raw feed</a>.</p>
+</footer>
+</body>
+</html>
