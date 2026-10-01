@@ -245,12 +245,28 @@
   <p>EU remote salaries run at roughly 65–75% of US equivalents for comparable roles, with senior EU security and SRE roles reaching the €110k–130k band.</p>
   <p>Contract/hourly roles show a wide range ($50–$170/hr) depending on seniority and specialization — senior AI engineers and independent developers command the top rates.</p>
 
+  <h2>Pull live salary bands by skill (no API key)</h2>
+  <p>Every figure on this page comes from a live, keyless endpoint. Fetch current per-skill compensation bands yourself &mdash; no signup, no key &mdash; and filter to the skills a candidate lists:</p>
+  <div class="note" style="text-align:left">
+    <code>curl -s "https://remote-jobs-api.tten.no/v1/salary-band?skills=python,golang"</code>
+    <p style="margin-top:10px;margin-bottom:10px">Returns min / P25 / median / P75 / max for each skill, computed over the live listings that publish a salary. Example (live):</p>
+    <pre style="margin:0;overflow:auto;background:var(--bg);padding:12px;border-radius:8px;font-size:0.8rem;line-height:1.4">{
+  "skills": [
+    { "skill": "golang", "jobs": 32, "count_with_salary": 2,
+      "min": 150000, "p25": 150000, "median": 150000, "p75": 150000, "max": 150000 },
+    { "skill": "python", "jobs": 8, "count_with_salary": 2,
+      "min": 90000, "p25": 90000, "median": 90000, "p75": 190000, "max": 190000 }
+  ]
+}</pre>
+  </div>
+
   <div class="cta">
     <h3>Get this data as a live API</h3>
-    <p>Filter 325+ remote jobs by salary, location, source, and role. No signup. 100 free calls/month.</p>
+    <p>Filter 325+ remote jobs by salary, role, source &mdash; or pull live per-skill salary bands. No signup. 100 free calls/month.</p>
     <a href="https://remote-jobs-api.tten.no">Try the Remote Jobs API &rarr;</a>
     <p style="margin-top:12px;font-size:0.85rem">
-      <code>curl "https://remote-jobs-api.tten.no/v1/jobs?min_salary=150000" | jq '.jobs[].title'</code>
+      <code>curl -s "https://remote-jobs-api.tten.no/v1/salary-band?skills=python"</code><br>
+      <code>curl -s "https://remote-jobs-api.tten.no/v1/jobs?min_salary=150000" | jq '.jobs[].title'</code>
     </p>
   </div>
 
