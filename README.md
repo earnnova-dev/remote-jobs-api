@@ -32,6 +32,7 @@ Built for:
 | GET | `/health` | Status + live job count |
 | GET | `/v1/jobs/sources` | Available boards |
 | GET | `/v1/jobs` | Normalized job listings |
+| GET | `/v1/snapshot` | Live market snapshot: demand by source + salary distribution + hot skills (no key) |
 
 ### GET /v1/jobs
 
@@ -76,6 +77,36 @@ curl "https://<your-host>/v1/jobs?skills=python,backend,api&limit=3"
   ]
 }
 ```
+
+
+### GET /v1/snapshot
+
+A live, self-updating snapshot of the remote job market — no key required. One
+call returns how many jobs each board is carrying, the salary distribution
+across the listings that publish one, and the hottest skills:
+
+```bash
+curl "https://remote-jobs-api.tten.no/v1/snapshot"
+```
+
+```json
+{
+  "count_live": 332,
+  "demand_by_source": { "jobicy": 120, "remoteok": 99, "wwr": 88, "remotive": 16, "hn": 9 },
+  "salary": {
+    "count_with_salary": 89,
+    "coverage_pct": 26.8,
+    "median_min": 104800,
+    "p75_min": 150000,
+    "max": 304500,
+    "distribution": { "<50k": 20, "50-100k": 23, "100-150k": 22, "150-200k": 14, "200-300k": 8, "300k+": 2 }
+  },
+  "top_skills": [ { "skill": "full-time", "count": 112 }, { "skill": "exec", "count": 65 } ]
+}
+```
+
+Built for market-intelligence and white-label job-board use — a ready
+"what is the remote market doing right now" signal from a single endpoint.
 
 ## Try the live API (no key required)
 

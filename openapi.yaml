@@ -64,6 +64,63 @@ paths:
                       type: string
                       enum: [remotive, remoteok, jobicy, wwr, hn]
 
+  /v1/snapshot:
+    get:
+      summary: Live remote job market snapshot
+      operationId: getSnapshot
+      description: |
+        A live, self-updating market snapshot computed from the current feed:
+        demand by source, the salary distribution across listings that publish
+        a salary, and the hottest skills. No key required.
+      responses:
+        "200":
+          description: The current market snapshot.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count_live:
+                    type: integer
+                    example: 332
+                  sources:
+                    type: array
+                    items:
+                      type: string
+                      enum: [remotive, remoteok, jobicy, wwr, hn]
+                  generated_at:
+                    type: integer
+                  demand_by_source:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  salary:
+                    type: object
+                    properties:
+                      count_with_salary:
+                        type: integer
+                      coverage_pct:
+                        type: number
+                      median_min:
+                        type: integer
+                      p75_min:
+                        type: integer
+                      max:
+                        type: integer
+                      distribution:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                  top_skills:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        skill:
+                          type: string
+                        count:
+                          type: integer
+
   /v1/jobs:
     get:
       summary: Get normalized remote job listings
