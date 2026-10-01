@@ -121,6 +121,73 @@ paths:
                         count:
                           type: integer
 
+  /v1/salary-band:
+    get:
+      summary: Per-skill salary bands
+      operationId: salaryBand
+      parameters:
+        - name: skills
+          in: query
+          description: Comma-separated list of skills to include (e.g. python,golang).
+          schema:
+            type: string
+        - name: source
+          in: query
+          description: Restrict to one board (e.g. jobicy, wwr).
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Max number of skills to return (default 40, max 100).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Compensation band per skill over live listings that carry a salary.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count_live:
+                    type: integer
+                  sources:
+                    type: array
+                    items:
+                      type: string
+                  generated_at:
+                    type: integer
+                  currency:
+                    type: string
+                    example: USD
+                  note:
+                    type: string
+                  skills:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        skill:
+                          type: string
+                        jobs:
+                          type: integer
+                        count_with_salary:
+                          type: integer
+                        coverage_pct:
+                          type: number
+                        min:
+                          type: number
+                        p25:
+                          type: number
+                        median:
+                          type: number
+                        p75:
+                          type: number
+                        max:
+                          type: number
+
   /v1/jobs:
     get:
       summary: Get normalized remote job listings

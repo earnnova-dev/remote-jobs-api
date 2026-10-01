@@ -6,6 +6,7 @@ Endpoints
     GET  /v1/jobs                -> normalized jobs (requires API key)
     GET  /v1/jobs/sources        -> {"sources":[...]}
     GET  /v1/snapshot            -> live market snapshot (no key, no account)
+    GET  /v1/salary-band         -> per-skill salary bands (no key, no account)
 
   Storefront (browser):
     GET  /                        -> landing / pricing
@@ -400,6 +401,74 @@ class Handler(BaseHTTPRequestHandler):
         }
         return self._json(200, result)
 
+    # ---------- per-skill salary bands (public, no key) ----------
+    def _handle_salary_band(self, q):
+        from collections import defaultdict
+        skills_wanted = set()
+        for s in (q.get("skills") or []):
+            for part in s.split(","):
+                p = part.strip().lower()
+                if p:
+                    skills_wanted.add(p)
+        source = (q.get("source") or [""])[0].strip().lower() or None
+        try:
+            limit = max(1, min(100, int((q.get("limit") or ["40"])[0])))
+        except (ValueError, TypeError):
+            limit = 40
+
+        raw = _cached_all()
+        jobs = [j.to_dict() for j in raw]
+        total = len(jobs)
+
+        per_skill = defaultdict(list)
+        skill_total = defaultdict(int)
+        for j in jobs:
+            if source and j.get("source") != source:
+                continue
+            tags = [t.strip().lower() for t in j.get("tags", []) if t and t.strip()]
+            mn = j.get("salary_min")
+            for t in set(tags):
+                skill_total[t] += 1
+                if mn is not None and mn > 0:
+                    per_skill[t].append(mn)
+
+        def _pct(vals, p):
+            if not vals:
+                return None
+            vals = sorted(vals)
+            idx = min(len(vals) - 1, int(round((len(vals) - 1) * p)))
+            return vals[idx]
+
+        rows = []
+        for skill, vals in per_skill.items():
+            if not vals:
+                continue
+            if skills_wanted and skill not in skills_wanted:
+                continue
+            rows.append({
+                "skill": skill,
+                "jobs": skill_total[skill],
+                "count_with_salary": len(vals),
+                "coverage_pct": round(100 * len(vals) / skill_total[skill], 1) if skill_total[skill] else 0,
+                "min": min(vals),
+                "p25": _pct(vals, 0.25),
+                "median": _pct(vals, 0.5),
+                "p75": _pct(vals, 0.75),
+                "max": max(vals),
+            })
+        rows.sort(key=lambda r: (-r["count_with_salary"], -(r["median"] or 0)))
+        rows = rows[:limit]
+
+        result = {
+            "count_live": total,
+            "sources": SOURCES,
+            "generated_at": int(time.time()),
+            "currency": "USD",
+            "note": "Bands are over the parsed salary_min (bottom of the range). A skill is a job's tag. Sorted by how many listings carry a salary for that skill.",
+            "skills": rows,
+        }
+        return self._json(200, result)
+
     # ---------- storefront ----------
     def _handle_landing(self):
         return self._html(200, web.landing(stripe_configured=stripe_configured(),
@@ -778,6 +847,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_jobs(q)
         if path == "/v1/snapshot":
             return self._handle_snapshot()
+        if path == "/v1/salary-band":
+            return self._handle_salary_band(q)
         if path == "/":
             return self._handle_landing()
         if path == "/register":

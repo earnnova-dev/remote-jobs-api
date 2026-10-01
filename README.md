@@ -33,6 +33,7 @@ Built for:
 | GET | `/v1/jobs/sources` | Available boards |
 | GET | `/v1/jobs` | Normalized job listings |
 | GET | `/v1/snapshot` | Live market snapshot: demand by source + salary distribution + hot skills (no key) |
+| GET | `/v1/salary-band` | Per-skill salary bands: min / p25 / median / p75 / max for each skill (no key) |
 
 ### GET /v1/jobs
 
@@ -107,6 +108,30 @@ curl "https://remote-jobs-api.tten.no/v1/snapshot"
 
 Built for market-intelligence and white-label job-board use — a ready
 "what is the remote market doing right now" signal from a single endpoint.
+
+### GET /v1/salary-band
+
+What do people actually get paid for a given skill? One call returns, for every
+skill (a job's tag), the compensation band across all live listings that carry a
+salary for it — `min` / `p25` / `median` / `p75` / `max` — no key required. This
+is the same per-skill salary data the paid scraping/normalization services sell,
+served live from the normalized cross-board feed.
+
+```
+curl "https://remote-jobs-api.tten.no/v1/salary-band?limit=10"
+curl "https://remote-jobs-api.tten.no/v1/salary-band?skills=python,golang"
+curl "https://remote-jobs-api.tten.no/v1/salary-band?source=jobicy&skills=engineer"
+```
+
+| param | type | description |
+|---|---|---|
+| `skills` | csv | return bands only for these skills (comma-separated) |
+| `source` | string | restrict to one board (e.g. `jobicy`, `wwr`) |
+| `limit` | int | max number of skills to return (default 40, max 100) |
+
+Response is sorted by how many listings carry a salary for that skill. Currency
+is USD (parsed `salary_min`, the bottom of the range). A skill with no listings
+carrying a salary is omitted.
 
 ## Try the live API (no key required)
 
