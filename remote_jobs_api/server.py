@@ -346,17 +346,31 @@ class Handler(BaseHTTPRequestHandler):
             s = j.get("source", "unknown")
             by_source[s] = by_source.get(s, 0) + 1
 
-        # salary distribution (USD-normalised; only jobs with salary_min)
+        # salary distribution — USD-only by construction. The endpoint
+        # advertises currency="USD", so only pool listings whose parsed salary
+        # is explicitly USD. Pooling native currencies (GBP/EUR/PLN/CAD/...)
+        # into a "USD" distribution is what produced the old 300,900-PLN-as-USD
+        # "max". Non-USD salary-bearing jobs are still real jobs (counted in
+        # total/count_live) — just excluded from the USD aggregation and
+        # reported via count_non_usd_excluded.
         salary_vals = []
+        non_usd_excluded = 0
         for j in jobs:
             mn = j.get("salary_min")
-            if mn is not None and mn > 0:
+            if mn is None or mn <= 0:
+                continue
+            if (j.get("salary_currency") or "").upper() == "USD":
                 salary_vals.append(mn)
+            else:
+                non_usd_excluded += 1
         salary_vals.sort()
         n = len(salary_vals)
         salary = {
             "count_with_salary": n,
             "coverage_pct": round(100 * n / total, 1) if total else 0,
+            "currency": "USD",
+            "count_non_usd_excluded": non_usd_excluded,
+            "note": "USD only: the distribution is over parsed salary_min floors of listings explicitly priced in USD; native-currency listings are excluded (see count_non_usd_excluded).",
         }
         if n:
             median_i = n // 2
@@ -427,9 +441,13 @@ class Handler(BaseHTTPRequestHandler):
                 continue
             tags = [t.strip().lower() for t in j.get("tags", []) if t and t.strip()]
             mn = j.get("salary_min")
+            # USD-only: only pool a floor when the listing is explicitly USD,
+            # so the "currency":"USD" contract holds (no native-currency pooling).
+            usd_floor = (mn is not None and mn > 0
+                         and (j.get("salary_currency") or "").upper() == "USD")
             for t in set(tags):
                 skill_total[t] += 1
-                if mn is not None and mn > 0:
+                if usd_floor:
                     per_skill[t].append(mn)
 
         def _pct(vals, p):
@@ -464,7 +482,7 @@ class Handler(BaseHTTPRequestHandler):
             "sources": SOURCES,
             "generated_at": int(time.time()),
             "currency": "USD",
-            "note": "Bands are over the parsed salary_min (bottom of the range). A skill is a job's tag. Sorted by how many listings carry a salary for that skill.",
+            "note": "USD only: bands are over the parsed salary_min (bottom of the range) of listings explicitly priced in USD; native-currency listings are excluded from the USD bands. A skill is a job's tag. Sorted by how many USD listings carry a salary for that skill.",
             "skills": rows,
         }
         return self._json(200, result)
