@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Remote Job Feed for AI Agents & LLM Apps (2026) — No-Auth Remote Job Data, One Endpoint</title>
+<meta name="description" content="Feed live remote job data to AI agents, RAG pipelines, and LLM apps with a single no-auth JSON endpoint — 340+ roles from 5 boards, deduplicated, tagged, salary and fit_score fields. Free tier: 100 calls/month.">
+<meta name="keywords" content="remote job api for ai agents, job data api for llm, rag job feed, no auth remote job data, job board api for agents, ai agent job feed, mcp remote jobs, agent-friendly job api, remote job json api, job data pipeline api">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-feed-for-ai-agents-2026.html">
+<meta property="og:title" content="Remote Job Feed for AI Agents & LLM Apps (2026) — No-Auth Job Data, One Endpoint">
+<meta property="og:description" content="A live, no-auth JSON feed of 340+ remote jobs from 5 boards — deduplicated, tagged, salary + fit_score fields — built for AI agents, RAG pipelines, and LLM apps. Free tier: 100 calls/month.">
+<meta property="og:url" content="https://earnnova-dev.github.io/remote-jobs-api/remote-job-feed-for-ai-agents-2026.html">
+<meta property="og:type" content="article">
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d2e;
+    --border: #2a2d3e;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #34d399;
+    --green: #34d399;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    padding: 0;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0e3b2e 0%, #0f1117 70%);
+    padding: 48px 24px 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 { font-size: 2.2rem; margin-bottom: 12px; font-weight: 700; }
+  .hero .subtitle { color: var(--muted); font-size: 1.05rem; max-width: 660px; margin: 0 auto 16px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 14px; font-size: 0.85rem;
+    color: var(--green);
+  }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .container { max-width: 860px; margin: 0 auto; padding: 32px 24px; }
+  h2 { font-size: 1.4rem; margin: 36px 0 16px; color: var(--text); }
+  h3 { font-size: 1.1rem; margin: 24px 0 10px; }
+  p { color: var(--muted); margin-bottom: 12px; }
+  ul { color: var(--muted); margin: 12px 0 12px 20px; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px; margin: 24px 0;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px; text-align: center;
+  }
+  .stat-card .num { font-size: 1.7rem; font-weight: 700; color: var(--accent); display: block; }
+  .stat-card .lbl { font-size: 0.8rem; color: var(--muted); }
+  code {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 6px;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.85em; color: var(--accent);
+  }
+  pre {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; overflow-x: auto;
+    margin: 16px 0; font-size: 0.85rem; line-height: 1.55;
+  }
+  pre code { background: none; border: none; padding: 0; color: var(--text); }
+  .callout {
+    background: linear-gradient(135deg, rgba(52,211,153,0.12) 0%, rgba(96,165,250,0.08) 100%);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 22px; margin: 24px 0;
+  }
+  .callout h3 { margin-top: 0; color: var(--text); }
+  .cta {
+    text-align: center; margin: 40px 0 12px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px 22px;
+  }
+  .cta h2 { margin-top: 0; }
+  .cta a {
+    display: inline-block; margin-top: 14px;
+    background: var(--accent); color: #0f1117; font-weight: 700;
+    padding: 10px 22px; border-radius: 8px; text-decoration: none;
+  }
+  .cta a:hover { filter: brightness(1.1); }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  td { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <span class="badge"><span class="dot"></span> Live &middot; no API key &middot; updated daily</span>
+  <h1>Remote Job Data for AI Agents &amp; LLM Apps</h1>
+  <p class="subtitle">Point your agent, RAG pipeline, or LLM tool at a single no-auth JSON endpoint and get 340+ deduplicated remote roles &mdash; tagged, salary-carrying, and ranked by fit. No scraping, no 5 separate board integrations, no API key to request.</p>
+</div>
+
+<div class="container">
+
+  <div class="stats-grid">
+    <div class="stat-card"><span class="num">340+</span><span class="lbl">live remote roles in the feed</span></div>
+    <div class="stat-card"><span class="num">5</span><span class="lbl">job boards, one endpoint</span></div>
+    <div class="stat-card"><span class="num">0</span><span class="lbl">auth to start (100 calls/mo free)</span></div>
+    <div class="stat-card"><span class="num">259</span><span class="lbl">roles scored for an <code>ai</code> match</span></div>
+  </div>
+
+  <h2>Why an agent needs a job feed, not 5 scrapers</h2>
+  <p>Building an AI recruiting copilot, a RAG pipeline over live job postings, an MCP server that answers "what's on the market right now?", or a data product that needs fresh remote-role signals means the same problem: you need <em>structured, current, cross-board job data</em>. Doing it by hand means scraping Remotive, RemoteOK, Jobicy, We Work Remotely, and the weekly Hacker News "Who is hiring" thread &mdash; each with a different shape, rate limit, and change cadence &mdash; then normalizing the fields yourself.</p>
+  <p><a href="https://remote-jobs-api.tten.no">Remote Jobs API</a> does that normalisation for you. One <code>GET</code> returns a single JSON array where every job has the same stable fields: a deduplicated <code>id</code>, <code>title</code>, <code>company</code>, <code>location</code>, <code>source</code>, a <code>tags</code> array, <code>salary_min</code>/<code>salary_max</code>/<code>salary_currency</code>/<code>salary_period</code>, <code>published</code>, and a <code>fit_score</code> when you query by skill. No auth on the free tier. No per-board adapters. Just data your model can ingest.</p>
+
+  <h2>What's in the feed today</h2>
+  <p>The current live snapshot (<strong>2026-10-02</strong>) contains <strong>340 remote jobs</strong> across five sources: Jobicy (120), RemoteOK (99), We Work Remotely (89), Remotive (17), and Hacker News (15). <strong>232 of them carry a <code>tags</code> array</strong> and <strong>88 carry a parsed salary</strong> (26% coverage &mdash; a data-availability fact, not a gap: the feed reports exactly what each board exposes).</p>
+  <p>For agent workloads the skill ranking is the useful part. Query <code>skills=</code> with a skill or stack and the feed scores every posting for a match and returns them best-first &mdash; so <code>skills=ai</code> surfaces <strong>259</strong> fit-scored roles, <code>skills=data</code> <strong>153</strong>, <code>skills=rust</code> <strong>88</strong>, <code>skills=ml</code> / <code>skills=agent</code> <strong>55</strong>, and <code>skills=python</code> <strong>21</strong>. That is the "ranked, deduped, structured" input an agent or RAG index actually wants.</p>
+  <table>
+    <thead>
+      <tr><th>Query</th><th>Fit-scored roles</th><th>Use for</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>skills=ai</code></td><td>259</td><td>AI/ML market signal, recruiting copilot</td></tr>
+      <tr><td><code>skills=data</code></td><td>153</td><td>Data/analytics demand tracker</td></tr>
+      <tr><td><code>skills=rust</code></td><td>88</td><td>Systems / high-perf stack tracking</td></tr>
+      <tr><td><code>skills=ml</code></td><td>55</td><td>Machine-learning hiring pulse</td></tr>
+      <tr><td><code>skills=agent</code></td><td>55</td><td>Agent/autonomy role emergence</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.85rem;">Counts are a point-in-time read of the live feed at 2026-10-02 and move daily as the boards update. The endpoint is the source of truth &mdash; this page is a snapshot.</p>
+
+  <div class="callout">
+    <h3>How <code>skills=</code> works &mdash; honestly</h3>
+    <p>Passing <code>skills=ai</code> does <em>not</em> hard-filter the feed to AI-only jobs. It scores every posting for an AI match (a title hit weighs more than a body/tag hit) and returns them best-first, with the strongest AI-named roles leading the list. The full board is still available so your agent can see adjacent roles too. Combine it with <code>min_score</code> to keep only the strongest matches &mdash; that is the clean way to gate a RAG ingestion or a "top-N relevant roles" answer.</p>
+  </div>
+  <div class="callout">
+    <h3>Stable, deduplicated, idempotent &mdash; agent-friendly by design</h3>
+    <p>Each job has a stable <code>id</code> you can dedupe on across pulls, so a scheduled agent can surface only <em>new</em> roles instead of re-announcing yesterday's. There is no session, no cookie, and no rate-limit handshake on the free tier &mdash; one request returns the whole board, which is exactly the call pattern a cron, a GitHub Action, or an MCP tool wants.</p>
+  </div>
+
+  <h2>Wire it up in one call &mdash; no API key, no signup</h2>
+  <p>The free tier needs <strong>no authentication</strong> and allows <strong>100 calls per month</strong>. Pull the current AI-ranked remote roles with a single request:</p>
+  <pre><code>curl "https://remote-jobs-api.tten.no/v1/jobs?skills=ai&amp;min_score=15&amp;limit=20"</code></pre>
+  <p>Or ingest it with the Python standard library &mdash; no dependencies, ideal as the tool function behind an agent:</p>
+  <pre><code>import json, urllib.request
+
+url = "https://remote-jobs-api.tten.no/v1/jobs?skills=ai&amp;min_score=15&amp;limit=25"
+with urllib.request.urlopen(url) as r:
+    data = json.load(r)
+
+for job in data["jobs"]:
+    fit = job.get("fit_score") or 0
+    sal = job.get("salary") or "n/a"
+    tags = ", ".join(job.get("tags") or [])
+    print(f"- [{fit}] {job['title']} | {job['company']} | {sal} | {tags}")</code></pre>
+  <p>Useful parameters for agent tools: <code>skills</code> (comma-separated), <code>source</code> (remotive, remoteok, jobicy, wwr, hn), <code>limit</code>, <code>min_salary</code>, and <code>min_score</code> (minimum <code>fit_score</code>, requires <code>skills</code>). <code>min_salary</code> filters on the salary <em>floor</em>, so it is the honest way to gate by a compensation band.</p>
+
+  <h2>Three patterns an agent can run on this endpoint</h2>
+  <ul>
+    <li><strong>Daily market pulse.</strong> Pull <code>skills=&lt;stack&gt;</code> on a schedule, dedupe on <code>id</code>, and only surface new roles &mdash; a self-updating "what's on the market" signal with zero scraping code.</li>
+    <li><strong>RAG / vector index over live postings.</strong> Ingest the <code>title</code>, <code>description</code>, <code>tags</code>, and <code>salary_min</code> fields straight into a vector store; the stable <code>id</code> makes upserts idempotent across daily re-indexes.</li>
+    <li><strong>Recruiting copilot / job-matcher.</strong> Run a <code>skills=</code> + <code>min_score</code> query against a real job description's skill set to surface the best-matching open remote roles, then answer with the top-N and their salary bands.</li>
+  </ul>
+
+  <h2>Who this is for</h2>
+  <p><strong>Agent builders:</strong> use the feed as the live data source behind an MCP tool, a RAG pipeline, or an agentic job-matcher &mdash; one endpoint instead of five scrapers you maintain. <strong>Data teams:</strong> track remote demand, salary bands, and skill coverage over time from a stable, documented schema. <strong>Job-seekers building their own tools:</strong> wire a cron to pull the roles that match <em>your</em> skills and get pinged when new ones land &mdash; no refreshing five tabs.</p>
+
+  <div class="cta">
+    <h2>Get the live remote-job feed for your agents</h2>
+    <p style="color:var(--muted); max-width:600px; margin:0 auto;">No key, no signup, 100 calls/month free. Pro and Team tiers add higher limits, multi-source priority, and SLA. Self-serve checkout is live.</p>
+    <a href="https://remote-jobs-api.tten.no">Open the API &rarr;</a>
+    <p style="margin-top:16px;"><a href="https://github.com/earnnova-dev/remote-jobs-api" style="font-size:0.9rem;">View the source &amp; Helm chart &rarr;</a></p>
+  </div>
+
+</div>
+</body>
+</html>
