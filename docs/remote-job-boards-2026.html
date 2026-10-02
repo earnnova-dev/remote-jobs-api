@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Best Remote Job Boards (2026): The 5 Sources That Actually Have Live Data — With Free APIs, RSS & Scraping Notes</title>
+<meta name="description" content="The remote job boards worth building on in 2026, ranked by data quality: Remotive, RemoteOK, We Work Remotely, Jobicy, and Hacker News Who's Hiring. For each: whether there is a free API, an RSS feed, or only HTML scraping, how much data you actually get, and the traps that break aggregators.">
+<meta name="keywords" content="remote job boards, best remote job sites 2026, remote job board api, remotive api, remoteok api, we work remotely rss, jobicy api, hacker news who's hiring, remote job data, job aggregator, scrape remote jobs, find remote work">
+<link rel="canonical" href="https://earnnova-dev.github.io/remote-jobs-api/remote-job-boards-2026.html">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--accent2:#3fb950;--code:#111820;--warn:#d29922}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+header{padding:46px 0 26px;border-bottom:1px solid var(--border)}
+h1{font-size:32px;margin:0 0 12px;line-height:1.2}
+.sub{font-size:18px;color:var(--muted);margin:0 0 18px}
+.badge{display:inline-block;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--text);margin:0 6px 8px 0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13.5px}
+code{background:var(--panel);padding:2px 6px;border-radius:5px;font-size:14px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+section{padding:34px 0}
+h2{font-size:24px;margin:0 0 16px;border-bottom:1px solid var(--border);padding-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+th,td{text-align:left;padding:10px 12px;border:1px solid var(--border);vertical-align:top}
+th{background:var(--panel)}
+.pill{color:var(--accent2);font-weight:600}
+.warn{color:var(--warn);font-weight:600}
+.cta{display:inline-block;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px}
+.card h3{margin-top:0}
+footer{border-top:1px solid var(--border);padding:26px 0;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>Best Remote Job Boards (2026)</h1>
+  <p class="sub">Most "top remote job sites" lists are recycled SEO content. This one is different: it's the short list of boards that actually have <strong>live, structured data</strong> you can consume today — and for each, exactly how (free API, RSS feed, or scrape-only) and the trap that breaks people who build on it.</p>
+  <span class="badge">🗂️ 5 boards, live-verified</span>
+  <span class="badge">Free API vs RSS vs scrape</span>
+  <span class="badge">Updated 2026-10-02</span>
+</header>
+
+<section class="wrap">
+  <h2>The boards, at a glance</h2>
+  <table>
+    <thead>
+      <tr><th>Board</th><th>Data access</th><th>What you get for free</th><th>The trap</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Remotive</strong></td>
+        <td class="pill">Free JSON API</td>
+        <td>Full listing set with salary, tags, and location in one call.</td>
+        <td>No documented rate limit — be polite if you poll.</td>
+      </tr>
+      <tr>
+        <td><strong>RemoteOK</strong></td>
+        <td class="pill">Free JSON API</td>
+        <td>Large, frequently-updated feed of tech + non-tech remote roles.</td>
+        <td><span class="warn">Silently caps you at ~100 listings without an auth token.</span></td>
+      </tr>
+      <tr>
+        <td><strong>We Work Remotely</strong></td>
+        <td class="pill">RSS feed</td>
+        <td>Long-running, stable XML feed of every new posting.</td>
+        <td>XML, not JSON — you parse a schema, and it changes when the board redesigns.</td>
+      </tr>
+      <tr>
+        <td><strong>Jobicy</strong></td>
+        <td class="pill">Free JSON API</td>
+        <td>One of the cleanest feeds; strong salary coverage.</td>
+        <td>The cleanest data, but a single source — you miss everything outside it.</td>
+      </tr>
+      <tr>
+        <td><strong>Hacker News (Who's Hiring)</strong></td>
+        <td class="pill">Search API</td>
+        <td>Weekly "Who's Hiring" threads via the Algolia search API — no board at all.</td>
+        <td>It's a <span class="warn">thread, not a board</span>: unstructured free text, weekly cadence, no fields.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>No single board covers the market, and no single board gives you <em>all</em> of salary + location + a stable schema. That gap is the whole reason aggregators exist.</p>
+</section>
+
+<section class="wrap">
+  <h2>Why "the best remote job site" is the wrong question</h2>
+  <div class="grid">
+    <div class="card"><h3>Consumers vs. builders</h3><p>If you are a job-seeker, the best board is the one with the most listings <em>in your niche</em>. If you are building a product, the best board is the one with the cleanest <em>data access</em>. Those are different answers — most lists conflate them.</p></div>
+    <div class="card"><h3>Data access is the real filter</h3><p>A board with 10,000 jobs and no API is a scraping project, not a data source. A board with 1,500 jobs and a clean JSON endpoint is a feed you can rely on. Access beats volume for anyone building.</p></div>
+    <div class="card"><h3>Salary is the differentiator</h3><p>Only a subset of the boards expose structured salary ranges at all. If your use case needs compensation data, the board choice narrows fast — most "top 10 remote sites" lists never mention it.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>How to get all five without five parsers</h2>
+  <p>Building your own means maintaining one parser per board — and each breaks silently when a board changes its markup. <strong>Remote Jobs API</strong> does the aggregation: it pulls these five sources, normalizes every listing into one schema, dedupes, and returns <code>JSON</code> or <code>CSV</code> — with an optional 0–100 skill fit-score. Self-hostable, stdlib-only Python, no key required to try.</p>
+  <pre><code>pip install remote-jobs-api
+remote-jobs --serve --port 8321     # GET /v1/jobs?skills=python,postgres</code></pre>
+  <p>
+    <a class="cta" href="https://github.com/earnnova-dev/remote-jobs-api">View the repo</a>
+    &nbsp;
+    <a class="cta" style="background:var(--panel);color:var(--text)" href="/free-remote-job-apis.html">Full free-API list</a>
+    &nbsp;
+    <a class="cta" style="background:var(--panel);color:var(--text)" href="/free-remote-job-apis-comparison.html">Live board benchmark</a>
+  </p>
+</section>
+
+<footer class="wrap">
+  <p>Access types verified live on 2026-10-02 (Remotive, RemoteOK, We Work Remotely, Jobicy, and the Hacker News search API all returned <code>200</code>). Feeds, limits, and schema change without notice — re-verify before you build. This is a reference directory; the normalized, deduped data product lives at <a href="https://github.com/earnnova-dev/remote-jobs-api">remote-jobs-api</a>.</p>
+</footer>
+</body>
+</html>
