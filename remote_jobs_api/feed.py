@@ -464,11 +464,15 @@ def filter_and_rank(jobs: List[Job], skills: Optional[List[str]] = None,
         d["fit_score"] = _match_score(j, skills) if has_skills else None
         if min_score is not None and (d["fit_score"] is None or d["fit_score"] < min_score):
             continue
-        # min_salary: keep only jobs whose parsed top-of-range meets it.
-        # Jobs with no parseable salary are excluded when the filter is active.
+        # min_salary: keep only jobs whose parsed FLOOR (salary_min) meets it.
+        # This matches the documented contract ("Filter on the floor with
+        # ?min_salary="). Using the top of range (salary_max) would keep jobs
+        # whose minimum pay is below the requested floor (e.g. "$90k-$120k"
+        # wrongly surviving min_salary=100k). Jobs with no parseable salary are
+        # excluded when the filter is active.
         if min_salary is not None:
-            top = d.get("salary_max")
-            if top is None or top < min_salary:
+            floor = d.get("salary_min")
+            if floor is None or floor < min_salary:
                 continue
         out.append(d)
     # best fit first (jobs without skills sort by fit=0), then newest

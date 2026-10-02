@@ -214,6 +214,24 @@ def test_filter_min_salary_off_returns_all_with_salary():
     assert {d["id"] for d in out} == {"a", "c"}
 
 
+def test_filter_min_salary_uses_floor_not_top_of_range():
+    # The documented contract (README / web.py / index.html) is "Filter on the
+    # floor with ?min_salary=". A job whose TOP of range meets the floor but whose
+    # FLOOR is below it must be excluded. Regression: the filter used salary_max
+    # (top of range), so "USD 90,000-120,000" was wrongly kept at min_salary=100k.
+    below = _job(id="below", title="Mid Python Engineer",
+                 salary="USD 90,000-120,000 / yearly")   # floor 90k < 100k, top 120k
+    above = _job(id="above", title="Staff Python Engineer",
+                 salary="USD 110,000-150,000 / yearly")  # floor 110k >= 100k
+    exact = _job(id="exact", title="Sr Python Engineer",
+                 salary="USD 100,000-140,000 / yearly")  # floor exactly 100k
+    out = filter_and_rank([below, above, exact], min_salary=100000)
+    ids = {d["id"] for d in out}
+    assert "below" not in ids   # floor 90k is below the requested floor -> excluded
+    assert "above" in ids       # floor 110k meets it -> kept
+    assert "exact" in ids       # floor exactly at it -> kept (>=)
+
+
 def test_to_dict_exposes_structured_salary():
     d = _job(id="a", salary="EUR 109,000-128,000 / yearly").to_dict()
     assert d["salary_min"] == 109000
