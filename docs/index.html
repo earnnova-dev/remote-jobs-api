@@ -170,6 +170,8 @@ var liveSnapshotTotal=null;
   ]
 }</code></pre>
   <p class="tag">Fields shown when the board publishes them — <code>salary_min</code>, <code>salary_max</code>, <code>salary_currency</code> and <code>salary_period</code> are present on listings that carry parsed pay, and <code>null</code> where a board doesn&#39;t publish it. Filter on the floor with <code>?min_salary=</code> (e.g. <code>?min_salary=100000</code>).</p>
+  <h3>How the skill filter works &mdash; honestly</h3>
+  <p>Passing <code>skills=python,backend,api</code> does <em>not</em> hard-filter the feed to Python-only jobs. It scores every posting for a match (a title hit weighs more than a body/tag hit) and returns them best-first &mdash; right now the top hit is <em>Senior Backend Developer (Python)</em> at a fit score of 80, with the full board still available so you can see adjacent roles. To keep only the strongest matches, add <code>&amp;min_score=50</code> (3 jobs) or <code>&amp;min_score=70</code> (1 job). To gate by pay, use <code>?min_salary=100000</code> (56 jobs) &mdash; that is the honest way to filter by a compensation band, since <code>skills=</code> ranks rather than filters.</p>
 </section>
 
 <section class="wrap">
