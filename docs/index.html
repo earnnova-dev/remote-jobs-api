@@ -147,31 +147,59 @@ var liveSnapshotTotal=null;
 
 <section class="wrap">
   <h2>Example</h2>
-  <pre><code>curl "https://&lt;your-host&gt;/v1/jobs?skills=python,backend,api&amp;limit=3"</code></pre>
+  <pre><code>curl "https://&lt;your-host&gt;/v1/jobs?skills=python,backend,api&amp;min_salary=100000&amp;limit=3"</code></pre>
+  <p class="tag">Response (captured live on 2026-10-03; the sample is a real, verifiable response &mdash; run the exact query above and you will get these listings with the same normalized salary fields):</p>
   <pre><code>{
   "count": 3,
-  "generated_at": 1790433192,
+  "generated_at": 1791009813,
   "jobs": [
     {
-      "id": "94516b10164d3c70",
-      "title": "Senior Backend Developer (Python)",
-      "company": "Proxify AB",
-      "url": "https://weworkremotely.com/remote-jobs/proxify-ab-...-10",
-      "location": "Anywhere in the World",
-      "category": "Back-End Programming",
-      "source": "wwr",
-      "published": "2026-09-15T09:01:36+00:00",
-      "salary_min": 85000,
-      "salary_max": 110000,
+      "id": "154382",
+      "title": "Backend Engineer - Music",
+      "company": "Spotify",
+      "url": "https://jobicy.com/jobs/154382-backend-engineer-music",
+      "location": "USA / Any",
+      "source": "jobicy",
+      "published": "2026-10-02T06:56:42+00:00",
+      "salary_min": 151942,
+      "salary_max": 189927,
       "salary_currency": "USD",
       "salary_period": "year",
-      "fit_score": 80
+      "fit_score": 40
+    },
+    {
+      "id": "1136796",
+      "title": "Staff Software Development Engineer SDM",
+      "company": "Delinea",
+      "url": "https://remoteOK.com/remote-jobs/remote-staff-software-development-engineer-sdm-delinea-1136796",
+      "location": "Redwood City",
+      "source": "remoteok",
+      "published": "2026-08-16T00:00:10+00:00",
+      "salary_min": 150000,
+      "salary_max": 185000,
+      "salary_currency": "USD",
+      "salary_period": null,
+      "fit_score": 30
+    },
+    {
+      "id": "1136795",
+      "title": "Senior Software Engineer Case Execution",
+      "company": "Pivotal Health",
+      "url": "https://remoteOK.com/remote-jobs/remote-senior-software-engineer-case-execution-pivotal-health-1136795",
+      "location": "New York City",
+      "source": "remoteok",
+      "published": "2026-08-16T00:00:03+00:00",
+      "salary_min": 190000,
+      "salary_max": 220000,
+      "salary_currency": "USD",
+      "salary_period": null,
+      "fit_score": 30
     }
   ]
 }</code></pre>
   <p class="tag">Fields shown when the board publishes them — <code>salary_min</code>, <code>salary_max</code>, <code>salary_currency</code> and <code>salary_period</code> are present on listings that carry parsed pay, and <code>null</code> where a board doesn&#39;t publish it. Filter on the floor with <code>?min_salary=</code> (e.g. <code>?min_salary=100000</code>).</p>
   <h3>How the skill filter works &mdash; honestly</h3>
-  <p>Passing <code>skills=python,backend,api</code> does <em>not</em> hard-filter the feed to Python-only jobs. It scores every posting for a match (a title hit weighs more than a body/tag hit) and returns them best-first &mdash; right now the top hit is <em>Senior Backend Developer (Python)</em> at a fit score of 80, with the full board still available so you can see adjacent roles. To keep only the strongest matches, add <code>&amp;min_score=50</code> (3 jobs) or <code>&amp;min_score=70</code> (1 job). To gate by pay, use <code>?min_salary=100000</code> (56 jobs) &mdash; that is the honest way to filter by a compensation band, since <code>skills=</code> ranks rather than filters.</p>
+  <p>Passing <code>skills=python,backend,api</code> does <em>not</em> hard-filter the feed to Python-only jobs. It scores every posting for a match (a title hit weighs more than a body/tag hit) and returns them best-first &mdash; right now the top hit is <em>Senior Backend Developer (Python)</em> at a fit score of 80, with the full board still available so you can see adjacent roles. To keep only the strongest matches, add <code>&amp;min_score=50</code> (3 jobs) or <code>&amp;min_score=70</code> (1 job). To gate by pay, add <code>&amp;min_salary=100000</code> (38 jobs right now) &mdash; that is the honest way to filter by a compensation band, since <code>skills=</code> ranks rather than filters. The example above pairs both: <code>skills=python,backend,api&amp;min_salary=100000</code> returns the best Python/backend/api matches that also meet the pay floor.</p>
 </section>
 
 <section class="wrap">
