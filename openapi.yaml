@@ -232,8 +232,8 @@ paths:
         Returns a deduped, sorted list of remote jobs across boards. When
         `skills` is provided each job carries a deterministic `fit_score`
         (0-100) and results are ranked best-fit-first. `min_salary` filters by
-        the parsed top-of-range salary (`salary_max`), dropping listings with
-        no parsed salary.
+        the parsed salary floor (`salary_min`), dropping listings with no
+        parsed salary.
       parameters:
         - name: skills
           in: query
@@ -269,7 +269,7 @@ paths:
         - name: min_salary
           in: query
           description: >-
-            Only return jobs whose parsed top-of-range salary (`salary_max`) is
+            Only return jobs whose parsed salary floor (`salary_min`) is
             at or above this value. Listings with no parsed salary are dropped.
             e.g. min_salary=100000.
           required: false
@@ -539,11 +539,11 @@ components:
         salary_min:
           type: integer
           nullable: true
-          description: Parsed bottom of the salary range, or null when not published.
+          description: Parsed bottom of the salary range, or null when not published. Used by `min_salary`.
         salary_max:
           type: integer
           nullable: true
-          description: Parsed top of the salary range, or null when not published. Used by `min_salary`.
+          description: Parsed top of the salary range, or null when not published.
         salary_currency:
           type: string
           nullable: true

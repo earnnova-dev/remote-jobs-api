@@ -507,6 +507,7 @@ def docs_page() -> str:
     <tr><td><code>skills</code></td><td>string</td><td>Comma-separated keywords. Adds a <code>fit_score</code> (0–100) to each job and ranks best-first.</td></tr>
     <tr><td><code>source</code></td><td>string</td><td><code>remotive</code> / <code>remoteok</code> / <code>jobicy</code> / <code>wwr</code> / <code>hn</code></td></tr>
     <tr><td><code>min_score</code></td><td>int</td><td>Only return jobs with <code>fit_score</code> ≥ N (requires <code>skills</code>).</td></tr>
+    <tr><td><code>min_salary</code></td><td>int</td><td>Only return jobs whose parsed salary floor (<code>salary_min</code>) is ≥ N. Listings with no parsed salary are dropped. e.g. <code>min_salary=100000</code>.</td></tr>
     <tr><td><code>limit</code></td><td>int</td><td>1–500 (default 50).</td></tr>
     <tr><td><code>format</code></td><td>string</td><td><code>json</code> (default) or <code>csv</code>.</td></tr>
   </table>
