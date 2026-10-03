@@ -1,25 +1,41 @@
 openapi: 3.1.0
 info:
   title: Remote Jobs API
-  version: 1.0.0
+  version: 1.2.0
   description: |
     Live, normalized remote-job listings across 5 job boards (Remotive,
     RemoteOK, Jobicy, We Work Remotely, Hacker News "Who is Hiring?") in one
     clean schema. Filter by skills and get a deterministic 0-100 fit score.
-    Built for job boards, recruiter tooling, lead-gen, market research, and
-    AI agents that need structured job data in a single call.
+    Filter by salary floor. Built for job boards, recruiter tooling, lead-gen,
+    market research, and AI agents that need structured job data in a single
+    call.
 
     No scraping of your session, no browser, no per-board accounts. One
     endpoint, one schema.
+
+    Paid plans (Pro $19/mo, Team $49/mo) unlock higher API limits and an
+    account dashboard; the public data endpoints are the same in both. See the
+    `/checkout/*` and `/billing/*` paths for the Stripe-backed storefront.
   contact:
     name: Nova
     url: https://github.com/earnnova-dev/remote-jobs-api
+  license:
+    name: MIT
 servers:
+  - url: https://remote-jobs-api.tten.no
+    description: Live public deployment (free + paid plans)
   - url: https://remote-jobs-api.example.com
-    description: Example server (replace with your hosted endpoint)
+    description: Self-hosted example server (replace with your endpoint)
+
+tags:
+  - name: data
+    description: Public, normalized job data (no key required)
+  - name: storefront
+    description: Stripe-backed paid plans, billing, and docs pages
 
 paths:
   /health:
+    tags: [data]
     get:
       summary: Health & live count
       operationId: health
@@ -40,13 +56,14 @@ paths:
                       type: string
                   count_live:
                     type: integer
-                    example: 324
+                    example: 340
               example:
                 status: ok
                 sources: [remotive, remoteok, jobicy, wwr, hn]
-                count_live: 324
+                count_live: 340
 
   /v1/jobs/sources:
+    tags: [data]
     get:
       summary: List available job-board sources
       operationId: listSources
@@ -65,6 +82,7 @@ paths:
                       enum: [remotive, remoteok, jobicy, wwr, hn]
 
   /v1/snapshot:
+    tags: [data]
     get:
       summary: Live remote job market snapshot
       operationId: getSnapshot
@@ -82,7 +100,7 @@ paths:
                 properties:
                   count_live:
                     type: integer
-                    example: 332
+                    example: 340
                   sources:
                     type: array
                     items:
@@ -101,6 +119,13 @@ paths:
                         type: integer
                       coverage_pct:
                         type: number
+                      currency:
+                        type: string
+                        example: USD
+                      count_non_usd_excluded:
+                        type: integer
+                      note:
+                        type: string
                       median_min:
                         type: integer
                       p75_min:
@@ -120,8 +145,18 @@ paths:
                           type: string
                         count:
                           type: integer
+                  top_companies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        company:
+                          type: string
+                        count:
+                          type: integer
 
   /v1/salary-band:
+    tags: [data]
     get:
       summary: Per-skill salary bands
       operationId: salaryBand
@@ -189,13 +224,16 @@ paths:
                           type: number
 
   /v1/jobs:
+    tags: [data]
     get:
       summary: Get normalized remote job listings
       operationId: getJobs
       description: |
         Returns a deduped, sorted list of remote jobs across boards. When
         `skills` is provided each job carries a deterministic `fit_score`
-        (0-100) and results are ranked best-fit-first.
+        (0-100) and results are ranked best-fit-first. `min_salary` filters by
+        the parsed top-of-range salary (`salary_max`), dropping listings with
+        no parsed salary.
       parameters:
         - name: skills
           in: query
@@ -228,6 +266,17 @@ paths:
             type: integer
             minimum: 0
             maximum: 100
+        - name: min_salary
+          in: query
+          description: >-
+            Only return jobs whose parsed top-of-range salary (`salary_max`) is
+            at or above this value. Listings with no parsed salary are dropped.
+            e.g. min_salary=100000.
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            example: 100000
         - name: format
           in: query
           description: Response format. `json` (default) or `csv`.
@@ -249,7 +298,7 @@ paths:
                     example: 3
                   generated_at:
                     type: integer
-                    example: 1790433192
+                    example: 1791006200
                   query:
                     type: object
                   jobs:
@@ -258,27 +307,207 @@ paths:
                       $ref: "#/components/schemas/Job"
               example:
                 count: 1
-                generated_at: 1790433192
+                generated_at: 1791006200
                 query:
                   skills: [python, api]
                   source: null
                   min_score: null
+                  min_salary: null
                   limit: 1
                 jobs:
-                  - id: 94516b10164d3c70
-                    title: Senior Backend Developer (Python)
-                    company: Proxify AB
-                    url: https://weworkremotely.com/remote-jobs/proxify-ab-senior-backend-developer-python-10
-                    location: Anywhere in the World
-                    salary: ""
-                    category: Back-End Programming
-                    tags: []
-                    published: "2026-09-15T09:01:36+00:00"
-                    source: wwr
-                    description: "Headquarters: Sweden ... Senior Python Developer ... Django ... PostgreSQL ..."
-                    fit_score: 40
+                  - id: 2091141
+                    title: Frontend Web Application Developer
+                    company: KoboToolbox
+                    url: https://remotive.com/remote-jobs/design/frontend-web-application-developer-2091141
+                    location: USA, Canada, Argentina, Mexico, Peru
+                    salary: "$90k - $105k"
+                    salary_min: 90000
+                    salary_max: 105000
+                    salary_currency: USD
+                    salary_period: null
+                    category: Design
+                    tags: [python, react, django]
+                    published: "2026-09-18T16:43:22+00:00"
+                    source: remotive
+                    description: "Location: Remote ... Frontend developer ..."
+                    fit_score: 15
         "400":
-          description: Bad request (unknown source, non-integer limit/min_score).
+          description: Bad request (unknown source, non-integer limit/min_score, invalid min_salary).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "unknown source 'bad'; choose from ['remotive', 'remoteok', 'jobicy', 'wwr', 'hn']"
+
+  /docs:
+    tags: [storefront]
+    get:
+      summary: Human-readable API documentation page
+      operationId: docsPage
+      description: The browser docs page describing every endpoint, parameter, plan, and the Pro/Team pricing.
+      responses:
+        "200":
+          description: HTML documentation page.
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /openapi.yaml:
+    tags: [storefront]
+    get:
+      summary: This OpenAPI 3.1 contract (machine-readable)
+      operationId: openapiSpec
+      description: The canonical, versioned API contract for this service.
+      responses:
+        "200":
+          description: The OpenAPI YAML document.
+          content:
+            application/yaml:
+              schema:
+                type: string
+
+  /checkout/{plan}:
+    tags: [storefront]
+    description: |
+      Paid-plan storefront. `plan` is `pro` ($19/mo) or `team` ($49/mo).
+      **GET** renders the checkout page. **POST** (form: `email`) creates a
+      Stripe Checkout Session for a registered account and redirects the
+      browser to Stripe.
+    parameters:
+      - name: plan
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [pro, team]
+    get:
+      summary: Render the paid-plan checkout page
+      operationId: checkoutPage
+      responses:
+        "200":
+          description: Checkout page for the plan.
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Unknown plan.
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      summary: Create a Stripe Checkout Session and redirect to Stripe
+      operationId: checkout
+      description: |
+        Requires a registered account (email). If the account has no Stripe
+        customer yet, one is created automatically. Responds with a 302
+        redirect to the Stripe-hosted checkout; on completion Stripe redirects
+        back to `/dashboard`.
+      responses:
+        "302":
+          description: Redirect to the Stripe Checkout URL.
+          content:
+            text/html:
+              schema:
+                type: string
+        "400":
+          description: No email / not registered / Stripe not configured.
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Unknown plan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "502":
+          description: Stripe backend error.
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /billing/portal:
+    tags: [storefront]
+    get:
+      summary: Open the Stripe customer billing portal
+      operationId: billingPortal
+      description: |
+        Requires a logged-in account with an existing Stripe customer. Creates
+        a Stripe Customer Portal session (manage card, cancel, update payment
+        method) and redirects to it.
+      responses:
+        "302":
+          description: Redirect to the Stripe Customer Portal.
+          content:
+            text/html:
+              schema:
+                type: string
+        "400":
+          description: No logged-in account or no Stripe customer on this account.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "no stripe customer on this account"
+        "502":
+          description: Stripe backend error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /billing/cancel:
+    tags: [storefront]
+    description: Cancel the active subscription at the end of the billing period.
+    get:
+      summary: Cancel subscription at period end (GET, logged-in)
+      operationId: billingCancelGet
+      responses:
+        "302":
+          description: Redirect to the dashboard after cancellation.
+          content:
+            text/html:
+              schema:
+                type: string
+        "502":
+          description: Stripe backend error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    post:
+      summary: Cancel subscription at period end (POST, logged-in)
+      operationId: billingCancelPost
+      description: Same as GET; also callable from a form/POST.
+      responses:
+        "302":
+          description: Redirect to the dashboard after cancellation.
+          content:
+            text/html:
+              schema:
+                type: string
+        "502":
+          description: Stripe backend error.
           content:
             application/json:
               schema:
@@ -307,6 +536,22 @@ components:
         salary:
           type: string
           description: Salary range string when the board publishes one, else empty.
+        salary_min:
+          type: integer
+          nullable: true
+          description: Parsed bottom of the salary range, or null when not published.
+        salary_max:
+          type: integer
+          nullable: true
+          description: Parsed top of the salary range, or null when not published. Used by `min_salary`.
+        salary_currency:
+          type: string
+          nullable: true
+          description: Currency code (e.g. USD) when a salary is published, else null.
+        salary_period:
+          type: string
+          nullable: true
+          description: Salary period (e.g. year, month) when published, else null.
         category:
           type: string
         tags:
